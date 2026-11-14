@@ -1,0 +1,10 @@
+source: {type: csv}
+fields:
+  transaction_id: order_id
+  customer_id: shopper
+  retailer_id: retailer
+  timestamp: purchased_at
+  raw_product_text: description
+  quantity: units
+  unit_price: price
+  line_total: amount

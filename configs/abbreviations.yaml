@@ -1,0 +1,9 @@
+# Receipt-text abbreviations expanded BEFORE matching (keys/values uppercase, whitespace-delimited phrases).
+# Dataset-specific vocabulary lives here, not in code.
+abbreviations:
+  "T/TISSUE": "TOILET TISSUE"
+  "W/UP LIQ": "WASHING UP LIQUID"
+  "WASH LIQ": "WASHING LIQUID"
+  "SKIM": "SKIMMED"
+  "CHOC": "CHOCOLATE"
+  "PROT": "PROTECTION"

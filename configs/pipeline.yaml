@@ -1,0 +1,23 @@
+synthetic: true
+input:
+  path: data/raw/DH_Synthtic_Receipt_Database.xlsx
+  mapping: configs/mappings/dh_synthetic_receipts.yaml
+hierarchy: configs/hierarchy.yaml
+need_states: configs/need_states.yaml
+abbreviations: configs/abbreviations.yaml
+
+params:
+  seed: 42
+  min_prefix_len: 20          # truncated strings shorter than this are never prefix-merged
+  fuzzy_review_threshold: 0.90 # similarity above which an UNMERGED pair is queued for human review
+  n_perm: 999                 # within-consumer permutations for co-purchase null
+  n_perm_trend: 0           # within-consumer month permutations for trend tests
+  min_pair_count: 8
+  alpha: 0.05                 # FDR level
+  min_cycles_for_seasonality: 2
+
+# Portfolio lens: empty focal_owners AND focal_brands = general-market mode.
+portfolio_lens:
+  name: "P&G"
+  focal_owners: ["P&G"]
+  focal_brands: []

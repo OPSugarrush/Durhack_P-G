@@ -1,0 +1,115 @@
+# Product hierarchy seed: variant string -> family -> brand (nullable) -> function -> category -> department.
+# Rules are matched against the OCR-folded, abbreviation-expanded family key (uppercase).
+# First matching rule wins. Edit freely; no code change needed.
+levels: [variant, family, brand, function, category, department]
+
+# Longest match wins. Brands not listed are left null (the engine handles null brands).
+brands:
+  - ALPRO
+  - ACTIVIA
+  - ALBERTO BALSAM
+  - ANCHOR
+  - ANDREX
+  - AQUAFRESH
+  - ARIEL
+  - ARLA
+  - BIRDS EYE
+  - BARILLA
+  - BABYBEL
+  - BEN
+  - BRANSTON
+  - CADBURY
+  - CARTE DOR
+  - CATHEDRAL CITY
+  - CAULDRON
+  - CIF
+  - COCA-COLA
+  - COLGATE
+  - COMFORT
+  - CRAVENDALE
+  - CUSHELLE
+  - DE CECCO
+  - DETTOL
+  - DOLMIO
+  - DOMESTOS
+  - DOVE
+  - DR BECKMANN
+  - FAIRY
+  - FINISH
+  - FLASH
+  - FLORA
+  - GOODFELLAS
+  - HARIBO
+  - HEAD AND SHOULDERS
+  - HEINZ
+  - HELLMANNS
+  - HOVIS
+  - IMPERIAL LEATHER
+  - INNOCENT
+  - JACOB
+  - KELLOGGS
+  - KENCO
+  - KINGSMILL
+  - LENOR
+  - LINDT
+  - LOYD GROSSMAN
+  - LURPAK
+  - MALTESERS
+  - MCCAIN
+  - MCVITIES
+  - MULLER
+  - NAPOLINA
+  - NESCAFE
+  - ORAL-B
+  - PANTENE
+  - PATAKS
+  - PEPSI
+  - PERSIL
+  - PG TIPS
+  - PILGRIMS CHOICE
+  - PLENTY
+  - QUAKER
+  - RADOX
+  - ROBINSONS
+  - ROWNTREES
+  - SURF
+  - TILDA
+  - VANISH
+  - WALKERS
+  - WARBURTONS
+  - WEETABIX
+  - YEO VALLEY
+  - YORKSHIRE TEA
+
+# Ownership. Only the six P&G brands named in the strategy doc are assigned;
+# everything else is deliberately unassigned until someone verifies it.
+owners:
+  "P&G": [ARIEL, FAIRY, LENOR, ORAL-B, HEAD AND SHOULDERS, PANTENE]
+
+rules:
+  # ---- Home & personal care ----
+  - {pattern: 'STAIN|VANISH|\bOXI\b',                     department: home_personal_care, category: laundry,            function: stain_removal}
+  - {pattern: 'FAB COND|SCENT BO',                      department: home_personal_care, category: laundry,            function: fabric_care}
+  - {pattern: 'WASHING UP LIQUID|DISHWASHER',             department: home_personal_care, category: household_cleaning, function: dish_wash}
+  - {pattern: 'WASHING LIQUID|NON BIO|LIQUID 24|\bPODS\b', department: home_personal_care, category: laundry,           function: fabric_wash}
+  - {pattern: 'BLEACH|SURFACE CLEA|BATHROOM CLEANER|\bCIF CREAM', department: home_personal_care, category: household_cleaning, function: surface_clean}
+  - {pattern: 'TOILET TISSUE',                            department: home_personal_care, category: paper_goods,        function: toilet_paper}
+  - {pattern: 'KITCHEN ROLL',                             department: home_personal_care, category: paper_goods,        function: kitchen_roll}
+  - {pattern: 'TOOTHPASTE',                               department: home_personal_care, category: oral_care,          function: oral_hygiene}
+  - {pattern: 'SHAMPOO|\bSH$|TINGLE SH|HEAD AND SHOULDERS',                  department: home_personal_care, category: hair_care,          function: hair_cleanse}
+  - {pattern: 'SHOWER GEL|BAR SOAP|CREAM BAR',            department: home_personal_care, category: body_care,          function: body_cleanse}
+  # ---- Grocery ----
+  - {pattern: 'BREAD',                                    department: grocery, category: bakery,           function: bread_staple}
+  - {pattern: 'MILK 2L|OAT ORIG|YOGHURT|CORNER|BUTTER|SPREAD', department: grocery, category: dairy_chilled, function: chilled_staple}
+  - {pattern: 'CHEDDAR|BABYBEL',                          department: grocery, category: dairy_chilled,    function: cheese}
+  - {pattern: '\bEGGS\b',                                 department: grocery, category: eggs,             function: chilled_staple}
+  - {pattern: 'ICE CREAM|FISH FINGERS|GARDEN PEAS|PIZZA|HOME CHIPS', department: grocery, category: frozen, function: frozen_meal}
+  - {pattern: 'BANANAS|APPLES|GRAPES|PEELERS|PEPPERS|BROCCOLI|CARROTS|SPINACH', department: grocery, category: fresh_produce, function: fresh_cooking}
+  - {pattern: 'CHICKEN|BEEF MINCE|SALMON|TOFU',           department: grocery, category: meat_fish_protein, function: fresh_cooking}
+  - {pattern: 'PASTA|SPAGHETTI|FUSILLI|PENNE|RICE|SAUCE|TOMATOES|BEANS|BEANZ|KETCHUP|MAYONNAISE', department: grocery, category: ambient_meal, function: meal_base}
+  - {pattern: 'CORN FLAKES|WEETABIX|\bOATS\b',             department: grocery, category: breakfast,        function: breakfast_staple}
+  - {pattern: 'PG TIPS|\bTEA\b|COFFEE',                           department: grocery, category: hot_drinks,       function: refreshment}
+  - {pattern: 'COLA|PEPSI|JUICE|SQUASH',                  department: grocery, category: soft_drinks,      function: refreshment}
+  - {pattern: 'CHOCOLATE|STARMIX|MALTESERS|PASTILLES',    department: grocery, category: confectionery,    function: treat}
+  - {pattern: 'CRISPS|CRACKERS|DIGESTIVES|HOBNOBS',       department: grocery, category: snacks_biscuits,  function: treat}
+default: {department: unclassified, category: unclassified, function: unclassified}

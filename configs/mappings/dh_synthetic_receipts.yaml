@@ -1,0 +1,16 @@
+source: {type: xlsx, sheet: Synthetic Receipts}
+fields:
+  transaction_id: Receipt ID
+  customer_id: Consumer ID
+  retailer_id: Store Name
+  store_id: Store Address
+  date: Date
+  time: Time
+  raw_product_text: Product Name
+  quantity: Quantity
+  unit_price: Unit Price
+  line_total: Line Total
+  receipt_total: Total Spend
+  promotion_label: Promotion
+  line_number: Line Number
+  image_ref: Image Filename

@@ -1,0 +1,286 @@
+NeedState Engine — Product Strategy & Architecture
+P&G Hackathon brief — drafted before the source workbook was received
+Note on status: The brief references an attached file, DH Synthtic Receipt Database.xlsx, but no file has actually been uploaded to this conversation. Everything below that doesn't depend on the real data (strategy, architecture, propositions, validation design, MVP plan, pitch) is complete. Part 2 (the actual data audit) and the evidence column of the issue register are placeholders until the workbook is uploaded — once it is, I'll run the audit and fill in real numbers.
+
+1. Executive Recommendation
+Build NeedState Engine as a hybrid, explainable basket-intelligence system whose single differentiator is this: it never forces a basket into one category. It outputs multiple candidate need-states with evidence, confidence, and abstention, and it is explicitly designed to be fed a different dataset next month without rewriting the core.
+The central hypothesis in the brief — that need-states are more valuable than product-level reporting — is plausible but unproven on receipt data alone. Receipts tell you co-purchase, not motivation. A basket of sensitive soap, moisturiser and baby powder is consistent with several stories, and nothing in a receipt disambiguates them. The honest, and actually more defensible, product is one that treats need-state as a probabilistic hypothesis with visible evidence, not a label. That reframing is itself the innovation — most teams will build a classifier that pretends to know; this one is credible specifically because it says what it doesn't know.
+Three choices define the product:
+Multi-label, not single-label — a basket can and usually does support more than one plausible need-state.
+Discovery, not just classification — the system should be able to say "this pattern doesn't fit my taxonomy" and propose a new candidate need-state for human review, rather than force-fitting.
+Confidence is structural, not cosmetic — every output carries separate scores for evidence strength, data quality, and model uncertainty, because collapsing these into one number is how teams accidentally oversell certainty they don't have.
+
+2. Actual Dataset Audit
+Workbook inspected directly (pandas/openpyxl, no filename-based assumptions).
+Structure. One sheet, "Synthetic Receipts", 32,776 line-item rows across 14 columns: Consumer ID, Receipt ID, Image Filename, Store Name, Store Address, Date, Product Name, Quantity, Unit Price, Promotion, Line Total, Total Spend, Time, Line Number. No separate product, category, or store master table; category and brand must be derived from the free-text Product Name string.
+Scale. 300 unique consumers, 3,005 unique receipts (5-15 receipts per consumer, median 10). 4 retailers: Morrisons (8,699 lines), ASDA (8,319), Tesco (8,132), Sainsbury's (7,626), across 24 distinct store addresses. Date coverage is six months, 1 Apr-30 Sep 2026, fairly evenly spread by month and day-of-week.
+Baskets. Mean basket size 10.9 items (median 11, range 2-26). Quantity only ever takes the value 1 or 2 (28,056 vs 4,720 rows); no larger multi-buys recorded.
+Reconciliation - clean. Every receipt's summed line totals match Total Spend exactly (0 of 3,005 mismatches); every Line Total matches Quantity times Unit Price exactly (0 of 32,776 mismatches); zero fully-duplicate rows. This sheet's arithmetic is internally consistent.
+Missingness. Every column is fully populated except Promotion, which is null for 26,387 of 32,776 rows (80.5%) and otherwise holds one of four simulated retailer-loyalty labels. No missing consumer IDs, prices, or quantities as supplied.
+Product identity - the dataset's central problem. 210 raw distinct Product Name strings collapse to 108 canonical products once a simple OCR-style substitution (0 to O, 1 to I) is normalised. 102 of those 108 canonical products have two or more raw spellings, and 30,076 of 32,776 rows (91.8%) belong to a product with at least one spelling variant. A compounding effect: Product Name appears truncated at 33 characters (62 of 210 raw strings are exactly 33 characters), so the same product is sometimes cut at a different point in addition to the character substitution - e.g. Andrex toilet tissue appears as four separate raw strings from substitution and truncation combined. Naive counting on raw Product Name would undercount true co-occurrence substantially; entity resolution is a prerequisite, not an enhancement.
+Price variance. The same canonical product carries a wide range of unit prices, including within a single retailer - e.g. Fairy Non Bio Pods ranges GBP 5.02-7.50 overall and GBP 5.07-6.92 at ASDA alone, across 75 distinct price points. Mean unit price is lower on promoted lines (GBP 2.07) than non-promoted (GBP 2.51), confirming Promotion affects price, but it does not account for all the spread - the remainder looks like synthetic price-jitter noise.
+Category composition - important for scoping the business case. The sheet has no category field, so products were tagged by keyword. The dataset is predominantly general grocery: food/grocery, dairy/fridge and produce/meat together are roughly 61% of all line items. Genuinely P&G-relevant categories (laundry, personal care, household cleaning) combined are only about 18.8% of rows. Narrowing to actual P&G-owned brands (Ariel, Fairy, Lenor, Oral-B, Head & Shoulders, Pantene - 11 canonical products), these account for 2,053 of 32,776 rows (6.3%), appear in 1,313 of 3,005 receipts (43.7%), and are purchased by 296 of 300 consumers at least once.
+This matters for the brief's own illustrative examples. The need-state examples the brief opens with - sensitive soap plus moisturiser plus baby powder, baby wipes plus baby cream, mouthwash plus whitening products - do not exist in this dataset: there are no baby-care products ("Baby Spinach" is a vegetable), no moisturiser, no mouthwash or whitening products. The need-states this data can actually evidence are narrower: a laundry/fabric-care cluster (Ariel, Fairy, Lenor) and a basic hair/oral-care cluster (Head & Shoulders, Pantene, Oral-B), set against a mostly-unrelated grocery basket. Proposition demos (P1-P3, P7) should be built against what is actually present, not the brief's hypothetical skincare/baby examples.
+Image filenames. 3,005 unique filenames, one-to-one with receipts, well-formed as a reference, but no image files were supplied alongside the spreadsheet, so this reference is currently unresolvable.
+Consumer/receipt identifiers. Consumer ID and Receipt ID are both clearly synthetic, sequential identifiers. Appropriate for a build/demo but no claim about real household behaviour or market sizing can be drawn from it; every output later in this doc should stay framed as demonstrated on synthetic data, not a market finding.
+
+3. Hidden Issue Register
+Problem
+Evidence
+Severity
+Business impact
+Proposed solution
+Validation
+Product-name spelling/OCR-style variants
+102 of 108 canonical products have 2+ raw spellings; 91.8% of all rows belong to a product with a variant (e.g. ACTIVIA vs ACT1VIA)
+High
+Fragments co-occurrence counts, undercounts real associations
+Fuzzy matching (rapidfuzz) plus embedding similarity into a canonical product_id, confidence-scored, no silent auto-merge above a risk threshold
+Manual sample review of merged pairs; false-merge rate
+Field truncation at ~33 characters compounding the spelling problem
+62 of 210 raw names are exactly 33 chars; Andrex tissue has 4 raw variants from substitution and truncation combined
+High
+Same product can split into up to 4 distinct products if only exact-string grouping is used
+Normalise both substitution and truncation before matching; treat truncated strings as prefix-matches in entity resolution
+Check that all 4 Andrex variants resolve to one canonical ID
+Wide same-store unit-price variance for one product
+Fairy Non Bio Pods: GBP 5.02-7.50 overall, GBP 5.07-6.92 within ASDA alone, 75 distinct price points
+Medium
+Price-based features would be noisy; promo flag only partly explains the spread
+Treat Unit Price as low-reliability for anything beyond promo/non-promo comparison
+Compare price variance explained by Promotion flag vs residual variance
+Promotion null for 80.5% of rows
+26,387 of 32,776 rows null; 4 simulated loyalty-scheme labels on the remainder
+Medium
+If treated as no promotion ever offered rather than not recorded, could overstate organic co-occurrence
+Treat null as promotion status unknown, not no promotion
+Sensitivity check: re-run trend ranking with nulls excluded vs included
+Dataset is overwhelmingly general grocery, not personal/home care
+~61% of rows are food/dairy/produce; true P&G-brand rows are 6.3% of the file
+High
+The brief's own illustrative need-states are not evidenced in this data at all
+Scope P1-P3/P7 demonstrations to the laundry and basic hair/oral clusters this data can evidence
+Confirm no baby-care/moisturiser/whitening SKUs exist before referencing them
+Consumer and receipt IDs are synthetic/sequential
+SYN-C-#### and SYN-R-###### formats, clean sequential pattern
+High
+Any consumer-prevalence claim would misrepresent synthetic data as real population data
+Label every output as demonstrated on synthetic data; never phrase findings as market-size estimates
+N/A - a labelling control, not a statistical one
+Image filenames reference files not supplied
+3,005 well-formed filenames, 1:1 with receipts, but no image files present in the upload
+Low-Medium
+OCR/image-based enrichment can't be built or tested yet
+Build the ingestion hook now, flag as awaiting image files rather than skipping silently
+Resolve filenames against an images folder once supplied
+Receipt/line-item reconciliation, duplicate rows
+No issues found: 0 of 3,005 receipts have a line-sum/total mismatch; 0 of 32,776 lines have a qty times price mismatch; 0 full duplicate rows
+-
+This sheet's bookkeeping is clean
+n/a (confirmed clean)
+Re-run the same checks on any new dataset before trusting it
+(This register will grow as later pipeline stages surface further issues; these eight rows are what the raw-file audit itself supports.)
+
+4. Innovation Opportunities — the 12 Propositions, Evaluated
+Rather than re-describe all 12 propositions from the brief at length (they're well specified in your prompt), here's the critical evaluation each deserves — what's genuinely novel, what's standard-technique-relabelled, and the real build path.
+P1 — Multi-Intent Basket Intelligence. This is the foundation, not a bonus feature; everything else depends on it. Technically: multi-label classification over need-state taxonomy using basket features (product embeddings, category co-occurrence, association-rule features) with a CatBoost or logistic multi-label head, not a single softmax. Genuinely differentiating only if paired with evidence attribution (P9) — otherwise it's a standard multi-label classifier with a new name.
+P2 — Shopping Mission Decomposition. The most technically interesting proposition in the list. Model the basket as a weighted graph (products as nodes, co-purchase/functional-similarity as edges) and run community detection (Louvain/Leiden) to partition it into sub-missions, then classify each sub-cluster. This is meaningfully different from P1 because it answers which products belong together, not just what needs are present. Ambiguous products (high edge weight to multiple communities) should be flagged, not force-assigned — this ambiguity flag is itself a sellable output.
+P3 — Unknown Need-State Discovery. The signature innovation, but the one most prone to overclaiming. Pipeline: embed products → cluster (HDBSCAN, not k-means, so it can say "no cluster" rather than force-fit) → check if a cluster's product-set is already well-covered by the existing taxonomy → if not, surface it with its supporting receipts, frequency, and an LLM-generated plain-English description of the products, explicitly labelled as a candidate needing human approval before entering the taxonomy. The discipline here — never auto-promoting a cluster to a validated need-state — is what keeps this credible rather than gimmicky.
+P4 — Emerging Trend Radar. Standard time-series-over-association-rules, done carefully: track lift/support of product pairs and need-state prevalence over rolling windows, rank by growth rate adjusted for promo and seasonality (regress out promo flags and month-of-year before ranking). Real risk: small samples create fake trends — require minimum support and holdout-period replication before surfacing anything.
+P5 — Consumer Routine/Journey Intelligence. Valuable but the brief is right to fence it tightly: this should only ever report observed repeat-purchase patterns (replenishment intervals, product switching) and must not infer household composition, health status, or life stage. Keep outputs mechanical ("product X replaced product Y in 6 of 8 consecutive baskets") and let a human, not the model, attach meaning.
+P6 — Product Knowledge Graph. Infrastructure, not a standalone feature — but essential; P2, P3, P7, and P11 all consume it. Build with NetworkX: nodes = products/brands/categories/functions/need-states, edges weighted by co-occurrence lift and shared-function similarity. The valuable output is bridge products — high-betweenness-centrality nodes connecting otherwise separate clusters — since those are exactly the products most informative about cross-category needs.
+P7 — White-Space Detector. Commercially the most sellable, scientifically the most fragile. Transaction data can show co-occurrence gaps (a known routine's products rarely bought together by the same household) but never unmet demand. Frame every output as "hypothesis for market research," never as validated opportunity size, and always pair it with the supporting evidence and its confidence band.
+P8 — Missing-Data Recovery. Build this as the explicit "we don't pretend" feature: suggest plausible missing items using association rules (e.g., shampoo+conditioner → hair treatment as a candidate), but store suggestions in a clearly separate field (suggested_items, never merged into observed_items). This directly serves Part 7 of the brief.
+P9 — Data Quality & Uncertainty Intelligence. This is the proposition that makes the whole system trustworthy. Three separate scores per prediction — receipt/data-quality score, evidence-strength score (support/lift/number of corroborating products), model-confidence score — never collapsed into one number, with an explicit abstention path when evidence is too thin.
+P10 — Cross-Retailer Intelligence. Mostly a stratification discipline applied to P1–P4: always report whether a pattern replicates across retailers before calling it a "consumer" pattern rather than a "retailer/assortment" pattern.
+P11 — Substitution & Complementarity. Needs sequential, not just co-occurrence, data: track a product disappearing from a consumer's repeat baskets while a functionally similar one appears, require several consecutive observations before calling it substitution (not one skipped purchase), and keep it as a labelled hypothesis.
+P12 — Self-Improving Engine. Active-learning loop: new/unmatched products and low-confidence clusters go to a review queue; approved items update the canonical product catalogue and taxonomy; only incremental fine-tuning or rule updates happen on approval, not full retraining. This is an architecture pattern, not a model — the key engineering decision is keeping human review in the loop for anything entering the taxonomy.
+
+5. Prioritisation Matrix
+Scored 1–10 on commercial value, innovation, technical feasibility, fit with the (unseen, presumed small-to-medium synthetic) dataset, reusability, demo potential, and validation difficulty (higher = harder to validate, treat as a cost).
+Proposition
+Commercial
+Innovation
+Feasibility
+Dataset fit
+Reusability
+Demo
+Validation difficulty
+P1 Multi-intent basket
+8
+5
+9
+9
+9
+8
+4
+P2 Mission decomposition
+7
+8
+7
+7
+8
+9
+6
+P3 Unknown need-state discovery
+8
+9
+6
+6
+7
+9
+8
+P4 Trend radar
+6
+6
+7
+5
+7
+6
+7
+P5 Routine/journey
+5
+6
+6
+5
+6
+6
+6
+P6 Knowledge graph
+6
+7
+8
+8
+9
+8
+5
+P7 White-space detector
+9
+7
+5
+5
+6
+8
+9
+P8 Missing-data recovery
+6
+6
+7
+8
+8
+7
+5
+P9 Data quality/uncertainty
+7
+8
+8
+9
+10
+7
+4
+P10 Cross-retailer
+5
+4
+7
+6
+7
+4
+5
+P11 Substitution
+6
+7
+5
+4
+6
+6
+8
+P12 Self-improving
+7
+7
+5
+5
+9
+5
+7
+Strongest three innovations: P3 (unknown need-state discovery), P2 (mission decomposition), P9 (uncertainty intelligence — unglamorous but it's what makes everything else defensible).
+Most commercially valuable: P7, white-space detection — but only if shipped with P9's confidence discipline attached, or it's just speculation with a dashboard.
+Most technically impressive: P2, mission decomposition via graph partitioning — concrete, demoable, and not something a basic classifier does.
+Best quick win: P1, multi-label basket classification — buildable in days with mlxtend/CatBoost and immediately demoable.
+Best for the missing-data requirement: P8 combined with the Part 7 experiment harness — directly answers the hackathon's explicit ask.
+Best differentiator from ordinary basket analysis: P3 — most teams will do association rules and call it insight; almost none will build a disciplined "here's a pattern I can't explain yet" pipeline with human-in-the-loop taxonomy growth.
+
+6. Recommended Product Concept
+NeedState Engine: a basket-intelligence platform that converts transaction lines into candidate consumer need-states, each with supporting evidence, alternative interpretations, and a confidence profile — and that discovers patterns outside its own taxonomy rather than forcing them into it.
+Core value proposition: most basket analytics tools answer "what sells together." This answers "what might this combination mean, how sure are we, and what don't we know yet" — and it does so on a system built to be repointed at a new retailer's data without rewriting the intelligence layer.
+Central capability: multi-label need-state inference with mission decomposition (P1+P2), wrapped in a mandatory uncertainty layer (P9). Supporting modules: unknown-pattern discovery (P3) as the growth engine, knowledge graph (P6) as shared infrastructure, missing-data simulation (P8) as the robustness story, and white-space hypotheses (P7) as the commercial payoff — clearly labelled as hypotheses.
+
+7. Technical Architecture
+Six layers, each with a narrow contract so a new dataset only touches Layers 1–2.
+Layer 1 — Universal Ingestion. Adapters per source format (xlsx/csv/POS export/OCR output) that each implement read() -> raw_records. No business logic here — only parsing and a declared field-mapping config (YAML/JSON) mapping source columns to canonical fields.
+Layer 2 — Canonical Data Model. Fixed internal schema: Transaction, LineItem, Product, Retailer, Customer. Every adapter must emit exactly this shape. This is the seam that makes the system reusable — everything above Layer 2 only ever sees canonical objects, never source-specific fields.
+Layer 3 — Product Intelligence. Entity resolution (rapidfuzz + embedding similarity) into a canonical product catalogue; enrichment (category, function, benefit tags); the product knowledge graph (P6). Outputs a canonical_product_id and function/category tags consumed by every layer above.
+Layer 4 — Consumer Intelligence. Need-state inference (P1), mission decomposition (P2), routine analysis (P5) — all operating only on Layer 2/3 outputs, never on raw source fields.
+Layer 5 — Discovery Intelligence. Unknown need-state discovery (P3), trend radar (P4), opportunity/white-space generation (P7). Reads Layer 4 outputs plus the knowledge graph; writes candidate taxonomy entries to a review queue, never directly to the live taxonomy.
+Layer 6 — Reliability & Explainability. Data-quality scoring, prediction confidence, evidence provenance, abstention logic, and the human-validation workflow (P12). This layer wraps every output from Layers 3–5 — nothing reaches the dashboard without a quality/confidence tag attached.
+What's universal vs. configurable vs. learned: the canonical schema and layer contracts are universal (hardcoded); field mappings, taxonomies, and thresholds are configurable (YAML, swappable per dataset); entity-resolution matches, embeddings, association rules, and clusters are learned from whatever data is loaded — nothing about the supplied spreadsheet is baked into code.
+Two schemas → one representation, example: a retailer POS export with columns [txn_id, sku, qty, unit_price, store_id, cust_loyalty_no] and a different OCR-receipt export with [receipt_no, item_text, price, qty, retailer_name, phone_hash] both map, via their own config file, to the same Transaction/LineItem objects — txn_id/receipt_no → transaction_id, sku/item_text → raw product reference (resolved in Layer 3), cust_loyalty_no/phone_hash → customer_id (optional field, nullable). The intelligence layers never know which source a transaction came from.
+
+8. Need-State Intelligence
+Multi-intent inference: a basket produces a set of (need-state, score, evidence) tuples, not one label. Build as multi-label classification over basket features (product embeddings aggregated, category co-occurrence counts, association-rule membership), trained initially on weak-supervision labels (rule-based seed labels from product-function combinations, Part 5A below) and refined via human-reviewed samples.
+Basket decomposition: represent the basket as a graph (nodes = products, edges = functional/co-purchase similarity), partition with community detection, classify each partition independently. Products with high cross-partition edge weight are flagged ambiguous, not forced into one mission.
+Reconciliation rule (fixes a real gap): P1 and P2 must not run as two independent passes that can silently disagree. Run P2 (graph partition into sub-missions) first; then run P1's multi-label scoring per partition, not basket-wide. A need-state's confidence is therefore always anchored to the specific product subset that supports it. This prevents the failure mode where P1 reports "80% confidence: haircare" while P2's partition contains zero hair products — that contradiction becomes structurally impossible rather than something the dashboard has to paper over.
+The three concepts the brief insists on keeping separate get three distinct output fields, never merged:
+candidate_needs: multiple genuine plausible intentions (this is a feature of the basket, not a defect).
+prediction_uncertainty: how confident the model is given the evidence it has.
+data_completeness: how much evidence is actually present in this receipt to begin with. A basket can have high candidate_needs count, high confidence, and high completeness all at once — that's a basket that genuinely supports several missions, not an uncertain one.
+Prediction pipeline output per basket: candidate need-states + scores, calibrated probabilities (only where a calibration set exists), supporting products per need-state, contradictory/ambiguous evidence, alternative interpretations, mission groupings, the three scores above, and an abstention flag when evidence is below threshold. Counterfactual sensitivity ("removing product X drops need-state Y's score by Z") is offered as a labelled sensitivity explanation, never as causal proof.
+Cold start: a new product without catalogue history gets its function inferred from descriptive metadata (name/category text → embedding → nearest known products) only when similarity exceeds a threshold; below threshold it's queued for manual enrichment rather than guessed.
+Confidence design — executive decision. A naive rule ("divide confidence by the number of candidate need-states") was considered and rejected: it conflates a basket genuinely supporting several independent missions (desirable, see mission decomposition) with the model hedging by listing weak candidates (undesirable), and it rewards a model for outputting fewer candidates — the opposite of what's wanted. Decision: keep each need-state's confidence independent (multi-label, not a shared probability budget). Add two separate basket-level controls instead of touching per-need confidence: (1) an evidence-concentration score (entropy or top-two margin across the candidate set) that flags diffuse, hedged predictions for extra scrutiny without lowering any individual score; (2) a multiple-comparison-corrected surfacing threshold — as the need-state taxonomy grows, the evidence bar a candidate must clear to be shown at all rises (false-discovery-rate style, consistent with the correction already used for trend detection in Section 11), rather than shrinking the score of candidates that do clear it.
+Need-state candidate generation — executive decision. Candidates are generated from a weighted combination of factors, not one method: statistical co-occurrence strength and temporal stability (bottom-up, from P3's clustering); semantic/functional coherence between products in a candidate cluster (embeddings, not just statistical proximity); alignment with an external seed taxonomy (known FMCG shopper-mission frameworks or retailer category structures, so the system isn't inventing categories from nothing); replication in a holdout time window; novelty against the existing taxonomy (no duplicate proposals); and a mandatory human validation gate before anything enters the live taxonomy (P3/P12). A candidate's overall credibility is the number and strength of these factors that independently agree, not a single model score.
+
+9. Missing-Data Intelligence
+Build the Part 7 experiment harness as a first-class module, not an afterthought — it's explicitly named in the hackathon brief and is a strong, concrete demo.
+Design: take the clean (or cleaned) dataset as ground truth, then programmatically corrupt copies at controlled levels (5/10/20/30%) across each missingness type the brief lists (missing names, missing line-items, missing prices, missing customer IDs, whole missing receipts, OCR-style corruption, duplicates). Tag each corrupted copy with its missingness mechanism (MCAR / MAR / MNAR) by construction — e.g., MNAR by preferentially dropping low-price items, MAR by dropping items conditional on retailer.
+Metrics tracked per level/mechanism: product-matching accuracy, basket-reconstruction reliability, need-state prediction degradation (vs. the clean-data prediction), false-positive/negative rate, confidence calibration drift, abstention rate, and emerging-trend detection accuracy. For fully missing receipts, report coverage loss (how much of the true basket population is now invisible), not an attempted reconstruction — the brief is explicit that whole receipts cannot be recovered, only estimated as a gap.
+Output: a reliability dashboard (Screen F) plotting each metric against missingness level and mechanism — this single artifact doubles as both an engineering validation tool and a judge-facing demo of exactly the robustness question the hackathon asks about.
+
+10. Product Intelligence
+Catalogue: canonical Product record with resolved name, brand, category, pack size/unit (normalised), and a confidence field for every derived attribute.
+Entity resolution: two-stage: blocking (group candidates by normalised brand/category to avoid O(n^2) comparisons), then scoring (rapidfuzz token-set ratio + sentence-transformer cosine similarity), with three bands — starter thresholds, to be tuned against the review-queue results, not final: combined score >= 0.93 auto-merge, 0.80-0.93 human-review queue, below 0.80 no-merge. Never auto-merge silently above a risk threshold; false merges corrupt every downstream co-occurrence count.
+Knowledge graph: NetworkX graph with typed nodes (product/brand/category/function/need-state) and weighted edges (co-occurrence lift, functional similarity, taxonomy membership). Centrality metrics surface bridge products; community detection on the product-only subgraph seeds candidate need-state clusters for P3.
+
+11. Emerging Trends and Opportunities
+Rank candidate emerging patterns by a composite of frequency, growth rate (promo- and seasonality-adjusted), novelty (not already in taxonomy), association strength (lift/support), and statistical reliability (replication in a holdout time window). Require minimum support and holdout replication before anything surfaces — this directly guards against the brief's "small samples creating false trends" risk.
+White-space opportunities (P7) are generated only from patterns that have cleared this bar, and are always output as a hypothesis object: {pattern, supporting_evidence, confidence_band, suggested_next_investigation} — never as a business recommendation presented as fact.
+
+12. Python Implementation Plan
+Modular structure (one module per concern, not one notebook):
+needstate_engine/  ingestion/        # format adapters, schema mapping config loader  canonical/         # Transaction, LineItem, Product, Retailer, Customer dataclasses  validation/        # reconciliation checks, missingness flags, data-quality scoring  product_intel/    entity_resolution.py   # rapidfuzz + sentence-transformers matching    enrichment.py          # metadata-based function/category inference    ontology.py             # taxonomy management, versioning    knowledge_graph.py      # networkx graph build + centrality/community  basket/    construction.py         # line-items -> basket objects    association_rules.py    # mlxtend apriori/fpgrowth  need_state/    inference.py             # multi-label model (CatBoost/sklearn), scoring    decomposition.py         # graph partition for missions    explainability.py        # evidence attribution, counterfactual sensitivity  discovery/    clustering.py            # HDBSCAN on product embeddings    trend_detection.py       # rolling-window lift/prevalence, statsmodels tests    opportunity_scoring.py   # P7 hypothesis generation  missing_data/    simulation.py             # controlled corruption at 5/10/20/30%    evaluation.py             # degradation metrics per mechanism  reliability/    quality_scores.py         # receipt/data/model confidence (separate, not merged)    human_review.py           # review queue, approval workflow (P12)  dashboard/                  # Streamlit app, Plotly figures, FastAPI backend if needed
+Each module exposes a typed input/output contract (pandas DataFrame or canonical dataclass in, same out) with its own pytest suite; error handling favors flagging-and-continuing over hard failure (a bad row degrades that row's quality score, it doesn't crash the pipeline). Use a simple rule/statistics approach wherever one is sufficient (reconciliation checks, association rules, initial weak labels) and reserve ML (embeddings, CatBoost, HDBSCAN) for genuinely pattern-heavy problems — entity resolution, need-state inference, and novel-cluster discovery.
+
+13. Validation and Testing
+No invented ground truth. Entity resolution: precision/recall/F1/false-merge rate against a manually labelled sample. Need-state prediction: since no genuine consumer-need labels exist, train on weak-supervision seed labels but validate only against a separate human-annotated holdout sample that the rule-generation logic never saw — validating against the same rules used to train is circular and only proves the model learned the rules, not that the rules are correct; report per-label precision/recall, macro/micro F1, calibration (Brier score), and abstention behavior, caveated as validation against proxy labels, not ground truth. Pattern/trend discovery: cluster stability and holdout-period replication, association support/confidence/lift with significance testing, false-discovery control. Splits: chronological holdout (never random, to avoid leaking a consumer's future purchases into training), consumer-level holdout where IDs are trustworthy, retailer-transfer test if volume allows — the chronological and consumer-level splits must be applied jointly (same consumer's later receipts never appear in training even if the date cutoff alone would allow it), or routine/journey analysis (P5) leaks future behaviour backward. Sample-size caution: at the dataset's actual scale (3,005 receipts, 108 products, 300 consumers), discovery and trend propositions (P3, P4) will have thin statistical power — treat any single "newly discovered" cluster as a hypothesis for a larger dataset to confirm, not a finding in its own right. The honest limitation to state explicitly in the pitch: no model here can be validated against true consumer motivation, because that was never observed — validation targets are proxies (rule consistency, replication, human agreement), and this should be said out loud, not hidden.
+
+14. Dashboard
+Six screens as specified in the brief (A–F). Suggested visualisations: Screen A — treemap of need-state prevalence + line chart of trend; Screen B — basket table with an evidence side-panel and a horizontal bar of candidate need-state scores; Screen C — network graph (Plotly/networkx) of the basket's product graph colored by detected mission, with ambiguous products highlighted; Screen D — scatter of novelty vs. growth rate for emerging clusters; Screen E — ranked hypothesis cards with confidence bands; Screen F — the missing-data degradation charts from Section 9. Build in Streamlit for the hackathon timeline; Plotly for all charts; FastAPI only if a live API demo is explicitly valuable to judges.
+
+15. Hackathon MVP
+Build: Layers 1–3 fully; Layer 4 with P1 (multi-label inference) + P2 (mission decomposition); Layer 5 with P3 (discovery, even if only one or two genuine novel clusters surface) and a basic P4; Layer 6 fully (this is cheap relative to its credibility payoff) including the Part 7 missing-data harness at 2–3 missingness levels. Dashboard: Screens A, B, C, F fully interactive; D and E can be simplified static views.
+Demonstrate: one basket, live, showing multiple candidate need-states with evidence and an ambiguous product; the mission-decomposition graph view; at least one genuinely novel discovered cluster with its human-review flag; the missing-data degradation chart showing confidence dropping gracefully rather than silently.
+Demo feasibility — checked, not assumed. Verified against the real file before committing to this MVP scope: 525 of 3,005 receipts contain 2+ distinct P&G products, and 341 receipts contain products from both the laundry cluster (Ariel/Fairy/Lenor) and the hair/oral cluster (Head & Shoulders/Pantene/Oral-B) — enough real co-occurrence volume to demonstrate P1 and P2 credibly without cherry-picking a single lucky basket.
+Leave for future: P5 (routine/journey), full P7 hypothesis generation at scale, P10 cross-retailer (unless the data has multiple retailers already), P11 substitution detection, and the full active-learning retraining loop in P12 (demo the review queue, not automated retraining).
+
+16. Judge-Facing Story
+Open with the tension, not the tech: a receipt tells you what someone bought, not why — and most basket-analytics tools quietly pretend otherwise. State the hypothesis under test plainly, then show the system refusing to over-claim: a basket with multiple honest candidate needs, a confidence score that's allowed to be low, a cluster the system flags as "I don't recognize this yet." That refusal to fake certainty is the pitch — it's what makes the commercial claims (white-space hypotheses, emerging trends) credible rather than decorative. Close with the reusability demo: the same engine ingesting a second, differently-shaped dataset without code changes, and the missing-data chart showing the system degrades predictably rather than breaking. Name the limitations yourself before a judge asks: no ground-truth validation of actual motivation, synthetic-data caveats, promotion/retailer confounds — stating them first reads as rigor, not weakness.
+
+17. Machine-Readable Appendix
+For any AI agent or developer picking up this doc to start building: the concrete, non-prose specifications referenced above, in one place.
+Canonical data model (Layer 2) — field-level:
+Transaction { transaction_id: str, customer_id: str|null, retailer_id: str, store_id: str|null, timestamp: datetime, line_items: [LineItem] }LineItem { line_id: str, transaction_id: str, raw_product_text: str, canonical_product_id: str|null, quantity: float, unit_price: float, line_total: float, promotion_flag: bool|null, line_number: int }Product { canonical_product_id: str, canonical_name: str, brand: str|null, category: str|null, function_tags: [str], pack_size: str|null, confidence: float, source_variant_strings: [str] }Retailer { retailer_id: str, name: str, store_ids: [str] }Customer { customer_id: str|null, first_seen: date, last_seen: date, transaction_count: int }
+Verified source-file mapping (this workbook → canonical model): Receipt ID→transaction_id, Consumer ID→customer_id, Store Name+Store Address→retailer_id/store_id, Date+Time→timestamp, Product Name→raw_product_text (requires normalization before use — see Section 2), Quantity/Unit Price/Line Total→ as named, Promotion→promotion_flag (null = unknown, not false), Line Number→line_number. Image Filename has no canonical-model field yet — add when image files are supplied.
+Product-name normalization (required before any matching step), verified on this file: replace digit/letter OCR confusions (0↔O, 1↔I) and collapse whitespace before fuzzy matching; do not match on raw strings.
+Entity resolution thresholds (starter values, Section 10): combined rapidfuzz + embedding cosine score >= 0.93 → auto-merge; 0.80–0.93 → human-review queue; < 0.80 → no-merge.
+Output object per basket (Section 8), minimum fields an implementation must produce:
+BasketPrediction {  basket_id: str,  mission_partitions: [{ partition_id, product_ids: [str], ambiguous_product_ids: [str] }],  candidate_needs: [{ need_state_id, partition_id, score: float, supporting_product_ids: [str], contradictory_evidence: [str] }],  evidence_concentration: float,          // entropy or top-2 margin across candidate_needs scores  data_completeness: float,                // 0-1, from receipt-level data-quality checks  model_confidence: float,                 // separate from evidence_concentration and data_completeness  abstained: bool}
+Note: candidate_needs scores are independent per partition (not softmax-normalized); do not sum them to 1 or divide by count.
+Known dataset facts to hardcode as test fixtures, not production logic (this file only): 32,776 rows, 3,005 receipts, 300 consumers, 108 canonical products, 4 retailers, 1 Apr–30 Sep 2026. These numbers validate an ingestion adapter for this file; they must never appear in the reusable Layer 1–2 code itself (Part 6 of the brief).

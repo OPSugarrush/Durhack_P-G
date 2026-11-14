@@ -1,0 +1,21 @@
+# Seed need-state taxonomy (weak-supervision baseline). Candidates discovered by the engine
+# go to the review queue and only enter this file after human approval.
+# Score model (per partition): (1 - 0.5**n_support) * (0.5 + 0.5*purity). See need_state/inference.py.
+thresholds:
+  abstain_below_score: 0.35
+  abstain_below_completeness: 0.6
+  ambiguity_ratio: 0.8
+need_states:
+  - {id: laundry_care,       label: "Laundry & fabric care",   functions: [fabric_wash, fabric_care, stain_removal]}
+  - {id: dish_care,          label: "Dishwashing",             functions: [dish_wash]}
+  - {id: surface_hygiene,    label: "Surface & bathroom hygiene", functions: [surface_clean]}
+  - {id: household_paper,    label: "Household paper",         functions: [toilet_paper, kitchen_roll]}
+  - {id: hair_care,          label: "Hair care",               functions: [hair_cleanse]}
+  - {id: oral_care,          label: "Oral care",               functions: [oral_hygiene]}
+  - {id: body_cleansing,     label: "Body cleansing",          functions: [body_cleanse]}
+  - {id: breakfast,          label: "Breakfast",               functions: [breakfast_staple, bread_staple]}
+  - {id: fresh_cooking,      label: "Cooking from fresh",      functions: [fresh_cooking, meal_base]}
+  - {id: chilled_basics,     label: "Chilled basics",          functions: [chilled_staple, cheese]}
+  - {id: convenience_meals,  label: "Convenience / frozen meals", functions: [frozen_meal]}
+  - {id: treats,             label: "Treats & snacking",       functions: [treat]}
+  - {id: refreshment,        label: "Drinks & refreshment",    functions: [refreshment]}
