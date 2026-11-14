@@ -85,9 +85,27 @@ function cohort(f){
     if(!e||['Mixed basket','Shopping mission'].includes(f.kind)) return '';
     return '<details class="panel"><summary>Wider category evidence</summary><p>Across all '+e.buyers+' buyers with enough trips before and after the split date, the average change was '+e.change+' percentage points. A percentage point is the difference between two percentages.</p><p>95% buyer-bootstrap interval: '+e.low+' to '+e.high+' points. Directional sign test, corrected across categories: q = '+e.q+'. This describes the wider group, not just the buyers selected for this finding.</p></details>';
 }
-function findings(s){view.innerHTML=intro('WORKSPACE / FINDINGS',s.sample?'Example findings':'Shopping findings',report.total.toLocaleString()+' receipts · '+report.buyers+' identified buyers · '+esc(report.start)+' to '+esc(report.end))+'<div class="bar"><label>Finding type <select id="filter">'+['All findings',...new Set(report.findings.map(f=>f.kind))].map(k=>'<option>'+esc(k)+'</option>').join('')+'</select></label><label>Search <input id="search" placeholder="Category or mission"></label></div><label><input id="all" type="checkbox"> Include exploratory observations</label><div id="cards"></div><details class="panel"><summary>How we compare shopping trips</summary><p>We compare '+ranges().join(' with ')+'. Each buyer needs at least two trips in each date range for a frequency comparison. We use 25 percentage points as the cutoff for a frequency change. For example, buying on 2 of 4 trips and then 3 of 4 moves from 50% to 75%.</p><p>'+report.variants+' receipt spellings were grouped into '+report.families+' product families.</p></details>';const f=document.querySelector('#filter'),q=document.querySelector('#search');f.value=filter;q.value=query;
-    const all=view.querySelector('#all');
-    all.checked=showExploratory;
+function mainFinding(x){
+    if(['Shopping mission','Mixed basket'].includes(x.kind))return true;
+    if(x.kind==='Established routine')return x.buyers>=2;
+    const changes=['Newly observed','More frequent','Less frequent','No recent purchase'];
+    const e=report.category_evidence[x.label];
+    if(!changes.includes(x.kind)||x.buyers<2||!e||e.q>.05)return false;
+    return ['Newly observed','More frequent'].includes(x.kind)?e.low>0:e.high<0;
+}
+let lastListing='';
+function findings(s, exploratory){
+    const listing=exploratory?'exploratory':'findings';
+    if(lastListing!==listing){query='';filter='All findings';lastListing=listing}
+    const entries=report.findings.map((x,i)=>({...x,i})).filter(x=>mainFinding(x)!==exploratory);
+    const heading=exploratory?intro('WORKSPACE / EXPLORATORY','Exploratory observations','These purchase patterns may fall outside a known shopping need or have too little evidence for a wider conclusion. Treat them as hypotheses for review. Each row names the category and counts the buyers and receipts behind it. Open a row to see whether the actual purchases support your interpretation.'):
+        intro('WORKSPACE / FINDINGS',s.sample?'Example findings':'Shopping findings',report.total.toLocaleString()+' receipts · '+report.buyers+' identified buyers · '+esc(report.start)+' to '+esc(report.end));
+    view.innerHTML=heading+'<div class="bar"><label>Finding type <select id="filter">'+['All findings',...new Set(entries.map(f=>f.kind))].map(k=>'<option>'+esc(k)+'</option>').join('')+'</select></label><label>Search <input id="search" placeholder="Category or mission"></label></div><div id="cards"></div><details class="panel"><summary>How we compare shopping trips</summary><p>We compare '+ranges().join(' with ')+'. Each buyer needs at least two trips in each date range for a frequency comparison. We use 25 percentage points as the cutoff for a frequency change. For example, buying on 2 of 4 trips and then 3 of 4 moves from 50% to 75%.</p><p>'+report.variants+' receipt spellings were grouped into '+report.families+' product families.</p></details>';const f=document.querySelector('#filter'),q=document.querySelector('#search');f.value=filter;q.value=query;
+    if(exploratory&&!entries.length){
+        view.innerHTML=heading+'<p>This workbook has no additional purchase patterns to review. You can explore its main findings instead.</p>'+btn('findings','View findings');
+        return;
+    }
+
     function draw(){
         const sections=[
             ['Shopping missions',['Shopping mission']],
@@ -97,28 +115,20 @@ function findings(s){view.innerHTML=intro('WORKSPACE / FINDINGS',s.sample?'Examp
             ['Other observations',['Occasional purchase','Limited history']]
         ];
         const html=sections.map(([title,kinds])=>{
-            const rows=report.findings.map((x,i)=>({...x,i})).filter(x=>{
-                if(!kinds.includes(x.kind)||!x.label.toLowerCase().includes(query.toLowerCase()))return false;
-                if(filter!=='All findings')return filter===x.kind;
-                if(all.checked||['Shopping mission','Mixed basket'].includes(x.kind))return true;
-                if(x.kind==='Established routine')return x.buyers>=2;
-                const e=report.category_evidence[x.label];
-                const up=['Newly observed','More frequent'].includes(x.kind);
-                return title==='Changes in purchasing' && x.buyers>=2 && e && e.q<=.05 && (up?e.low>0:e.high<0);
-            });
+            const rows=entries.filter(x=>kinds.includes(x.kind) && (filter==='All findings'||filter===x.kind) && x.label.toLowerCase().includes(query.toLowerCase()));
             if(!rows.length)return '';
             return '<section class="finding-section"><h2>'+title+'</h2>'+rows.map(x=>'<article><h3><a href="#evidence/'+x.i+'">'+esc(x.label)+'</a></h3><p>'+esc(x.kind)+' · '+esc(x.kind==='Shopping mission'?missionText(x):x.inference||explanation(x))+'</p><small>'+x.buyers+' identified buyers · '+x.baskets+' receipts</small></article>').join('')+'</section>';
         }).join('');
-        view.querySelector('#cards').innerHTML=html||'<p>No matching findings. Include exploratory observations to see more.</p>';
+        view.querySelector('#cards').innerHTML=html||'<p>No matches. Try another search or type.</p>';
     }
     f.onchange=()=>{filter=f.value;draw()};q.oninput=()=>{query=q.value;draw()};
-    all.onchange=()=>{showExploratory=all.checked;draw()};draw();
+    draw();
 }
-let showExploratory=false;
-async function evidence(i,j,version){if(i===undefined||!report.findings[i]){view.innerHTML=intro('WORKSPACE / CUSTOMER EVIDENCE','Choose a finding','Each finding has its own group of buyers and supporting receipts.')+btn('findings','Browse findings →');return}const f=report.findings[i],buyers=await api('evidence?finding='+i),c=await api('evidence?finding='+i+'&buyer='+j);if(epoch!==version)return;view.innerHTML='<a class="back" href="#findings">← All findings</a>'+intro('CUSTOMER EVIDENCE / '+esc(f.kind.toUpperCase()),esc(f.label),esc(explanation(f)))+'<div class="bar"><label>Buyer <select id="buyer">'+buyers.map((b,k)=>'<option value="'+k+'">'+esc(b??'Unidentified receipts')+'</option>').join('')+'</select></label></div>'+buyerReason(f,c)+cohort(f)+'<p>Open a trip to see which products support this finding. Highlighted products contributed to the selected mission or category.</p><h2 class="section">Supporting receipts</h2>'+c.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<details class="panel"><summary>'+esc(r.date)+' · Receipt '+esc(r.id)+'</summary>'+(r.abstained?'<p>Mission withheld: the available evidence is too weak or incomplete.</p>':'')+r.parts.map(p=>'<section class="receipt"><h3>'+esc(!r.abstained&&p.needs.length?p.needs.map(n=>n.label).join(' / '):'Products without a clear mission')+'</h3><small>'+esc((p.basis||'').replace('across both periods','in each half of the receipt history').replace('in only one period','in only one half of the receipt history'))+'</small><p>'+p.products.map((name,k)=>{
+
+async function evidence(i,j,version){if(i===undefined||!report.findings[i]){view.innerHTML=intro('WORKSPACE / CUSTOMER EVIDENCE','Choose a finding','Each finding has its own group of buyers and supporting receipts.')+btn('findings','Browse findings →');return}const f=report.findings[i],buyers=await api('evidence?finding='+i),c=await api('evidence?finding='+i+'&buyer='+j);if(epoch!==version)return;view.innerHTML=(mainFinding(f)?'<a class="back" href="#findings">← All findings</a>':'<a class="back" href="#exploratory">← Exploratory observations</a>')+intro('CUSTOMER EVIDENCE / '+esc(f.kind.toUpperCase()),esc(f.label),esc(explanation(f)))+'<div class="bar"><label>Buyer <select id="buyer">'+buyers.map((b,k)=>'<option value="'+k+'">'+esc(b??'Unidentified receipts')+'</option>').join('')+'</select></label></div>'+buyerReason(f,c)+cohort(f)+'<p>Open a trip to see which products support this finding. Highlighted products contributed to the selected mission or category.</p><h2 class="section">Supporting receipts</h2>'+c.receipts.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>'<details class="panel"><summary>'+esc(r.date)+' · Receipt '+esc(r.id)+'</summary>'+(r.abstained?'<p>Mission withheld: the available evidence is too weak or incomplete.</p>':'')+r.parts.map(p=>'<section class="receipt"><h3>'+esc(!r.abstained&&p.needs.length?p.needs.map(n=>n.label).join(' / '):'Products without a clear mission')+'</h3><small>'+esc((p.basis||'').replace('across both periods','in each half of the receipt history').replace('in only one period','in only one half of the receipt history'))+'</small><p>'+p.products.map((name,k)=>{
     const match=p.categories?.[k]===f.label||p.needs.some(n=>(f.kind==='Mixed basket'||n.label===f.label)&&n.support.includes(name));
     return (match?'<mark>'+esc(name)+'</mark>':esc(name))+(p.prices?.[k]!=null?' (unit price '+esc(p.prices[k])+')':'')+Object.entries(p.attributes?.[k]||{}).map(([key,values])=>' · '+esc(key)+': '+values.map(esc).join(', ')).join('');
 }).join(' · ')+'</p>'+(p.ambiguous.length?'<p>Could fit another group: '+p.ambiguous.map(esc).join(', ')+'</p>':'')+'</section>').join('')+'<details><summary>Scoring evidence</summary><p>Receipt completeness: '+pct(r.quality)+' · Model confidence (rule based): '+pct(r.confidence)+' · Gap between the strongest two candidate scores: '+pct(r.margin)+'.</p>'+r.parts.flatMap(p=>p.needs.map(n=>'<p>'+esc(n.label)+' · independent score '+pct(n.score)+' · supported by '+n.support.map(esc).join(', ')+'</p>')).join('')+'</details></details>').join('');const b=document.querySelector('#buyer');b.value=j;b.onchange=()=>location.hash='evidence/'+i+'/'+b.value}
 const pct=v=>Math.round(v*100)+'/100';
-async function route(){const version=++epoch;try{const [page='start',i,j='0']=location.hash.slice(1).split('/'),s=await api('state');if(version!==epoch)return;token=s.token;const name=page||'start';document.querySelectorAll('nav a').forEach(a=>{a.removeAttribute('aria-current');if(a.hash==='#'+name)a.setAttribute('aria-current','page')});if(name==='start')start();else if(name==='import')importPage(s);else if(!s.available)empty();else{report=report||await api('findings');if(version!==epoch)return;if(name==='evidence')await evidence(i,j,version);else findings(s)}window.scrollTo(0,0);view.focus()}catch(e){feedback(e.message)}}
+async function route(){const version=++epoch;try{const [page='start',i,j='0']=location.hash.slice(1).split('/'),s=await api('state');if(version!==epoch)return;token=s.token;const name=page||'start';document.querySelectorAll('nav a').forEach(a=>{a.removeAttribute('aria-current');if(a.hash==='#'+name)a.setAttribute('aria-current','page')});if(name==='start')start();else if(name==='import')importPage(s);else if(!s.available&&name==='exploratory')view.innerHTML=intro('WORKSPACE','Exploratory observations','Import a workbook to look for purchase patterns worth reviewing.')+btn('import','Import receipts');else if(!s.available)empty();else{report=report||await api('findings');if(version!==epoch)return;if(name==='evidence')await evidence(i,j,version);else findings(s,name==='exploratory')}window.scrollTo(0,0);view.focus()}catch(e){feedback(e.message)}}
 window.addEventListener('hashchange',route);route();
