@@ -1,4 +1,4 @@
-# NeedState Engine
+﻿# NeedState Engine
 
 Explore the needs a basket might serve, how often a category appears in a buyer's trips, and the receipts behind each finding. Mission scores are explainable rules, not measured probabilities of shopper intent.
 
@@ -12,7 +12,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m needstate.webapp --open
 ~~~
 
-The workspace runs on your computer at http://127.0.0.1:8765. Choose **Explore example** to use 64 built-in synthetic receipts; no external workbook is needed. Or open **Import** and select an Excel file. The first import replaces the example; subsequent imports extend the same session. Restarting the server clears imported data.
+The workspace runs on your computer at http://127.0.0.1:8765. Choose **Explore example** to use 64 built-in synthetic receipts; no external workbook is needed. Or open **Import** and select an Excel file. Choose **Add a file** to analyse that workbook on its own. A successful import replaces the current findings. Restarting the server clears imported data.
 
 Follow **Start → Import → Findings → Customer evidence**. Filter findings by type, select a buyer, then expand a receipt to inspect the contributing products, mission groups, uncertainty and scores. Use **All findings** to return with your filters intact.
 
@@ -26,7 +26,7 @@ The interactive workspace compares product pairings among each buyer's trips wit
 
 For a blind human review, run `python -m needstate.mission_review receipts.xlsx annotations.csv`. This writes a reproducible sample with one row per product. Within each receipt fill in a group identifier and enter the mission labels for that group in **needs**, separated by a vertical bar. Leave needs empty for a group with no clear purpose. Use labels from `configs/need_states.yaml`. Run the same command with `--compare` to see product-pair agreement, exact label agreement and the specific disagreements for rule review.
 
-Workbook columns named **Pack Size**, **Format**, **Ingredients** and **Customer Feedback** appear alongside matching products when supplied. Imports can be extended from the Import page. Opening the example preserves the imported dataset in memory until the server closes.
+Workbook columns named **Pack Size**, **Format**, **Ingredients** and **Customer Feedback** appear alongside matching products when supplied.
 
 - XLSX/CSV adapters and YAML field mappings, canonical lines and receipt integrity checks.
 - OCR folding, abbreviation expansion, unique-prefix resolution, fuzzy review suggestions and nullable brand/owner metadata.
