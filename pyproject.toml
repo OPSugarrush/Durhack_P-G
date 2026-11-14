@@ -11,9 +11,11 @@ dependencies = ["pandas>=2.2,<4", "numpy>=2,<3", "scipy>=1.14,<2", "PyYAML>=6,<7
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
+web = ["starlette>=0.47,<2", "uvicorn>=0.35,<1", "python-multipart>=0.0.20,<1"]
 
 [project.scripts]
 needstate = "needstate.__main__:main"
+needstate-web = "needstate.workspace.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

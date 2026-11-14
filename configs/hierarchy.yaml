@@ -87,6 +87,28 @@ owners:
   "P&G": [ARIEL, FAIRY, LENOR, ORAL-B, HEAD AND SHOULDERS, PANTENE]
 
 rules:
+  # Specific product functions take precedence over broad grocery groupings.
+  # These are descriptive product functions, never inferred personal attributes.
+  - {pattern: 'HAIR CONDITIONER|HAIR MASK|HAIR TREATMENT', department: home_personal_care, category: hair_care, function: hair_conditioning}
+  - {pattern: 'MOUTHWASH|DENTAL FLOSS|TOOTHBRUSH', department: home_personal_care, category: oral_care, function: oral_hygiene}
+  - {pattern: 'MOISTURISER|MOISTURIZER|FACE CREAM|FACIAL CLEANSER', department: home_personal_care, category: skin_care, function: skin_cleansing_and_care}
+  - {pattern: 'DEODORANT|ANTI.?PERSPIRANT', department: home_personal_care, category: body_care, function: deodorant}
+  - {pattern: 'RAZOR|SHAVING|SHAVE GEL', department: home_personal_care, category: grooming, function: shaving}
+  - {pattern: 'BABY WIPES|NAPPIES|DIAPERS', department: home_personal_care, category: baby_products, function: nappy_and_wipe_products}
+  - {pattern: 'SANITARY|TAMPONS|PANTY LINERS', department: home_personal_care, category: personal_hygiene, function: personal_hygiene_products}
+  - {pattern: 'DOG FOOD|CAT FOOD|PET FOOD|CAT LITTER', department: household, category: pet_products, function: pet_food_and_care}
+  - {pattern: 'MILK 2L|OAT ORIG', department: grocery, category: dairy_chilled, function: milk_and_alternatives}
+  - {pattern: 'YOGHURT|YOGURT|MULLER.*CORNER', department: grocery, category: dairy_chilled, function: yoghurt}
+  - {pattern: 'BUTTER|SPREAD', department: grocery, category: dairy_chilled, function: butter_and_spreads}
+  - {pattern: 'ICE CREAM|PASTILLES LOLLIES', department: grocery, category: frozen, function: frozen_treats}
+  - {pattern: 'FISH FINGERS|PIZZA|HOME CHIPS', department: grocery, category: frozen, function: frozen_meals_and_sides}
+  - {pattern: 'GARDEN PEAS', department: grocery, category: frozen, function: frozen_vegetables}
+  - {pattern: 'BANANAS|APPLES|GRAPES|PEELERS', department: grocery, category: fresh_produce, function: fresh_fruit}
+  - {pattern: 'PEPPERS|BROCCOLI|CARROTS|SPINACH', department: grocery, category: fresh_produce, function: fresh_vegetables}
+  - {pattern: 'CRISPS|CRACKERS', department: grocery, category: snacks_biscuits, function: savoury_snacks}
+  - {pattern: 'DIGESTIVES|HOBNOBS', department: grocery, category: snacks_biscuits, function: biscuits}
+  - {pattern: 'KETCHUP|MAYONNAISE', department: grocery, category: ambient_meal, function: condiments}
+  - {pattern: 'PASTA|SPAGHETTI|FUSILLI|PENNE|RICE', department: grocery, category: ambient_meal, function: pasta_and_rice}
   # ---- Home & personal care ----
   - {pattern: 'STAIN|VANISH|\bOXI\b',                     department: home_personal_care, category: laundry,            function: stain_removal}
   - {pattern: 'FAB COND|SCENT BO',                      department: home_personal_care, category: laundry,            function: fabric_care}

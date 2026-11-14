@@ -14,8 +14,8 @@ need_states:
   - {id: oral_care,          label: "Oral care",               functions: [oral_hygiene]}
   - {id: body_cleansing,     label: "Body cleansing",          functions: [body_cleanse]}
   - {id: breakfast,          label: "Breakfast",               functions: [breakfast_staple, bread_staple]}
-  - {id: fresh_cooking,      label: "Cooking from fresh",      functions: [fresh_cooking, meal_base]}
-  - {id: chilled_basics,     label: "Chilled basics",          functions: [chilled_staple, cheese]}
-  - {id: convenience_meals,  label: "Convenience / frozen meals", functions: [frozen_meal]}
-  - {id: treats,             label: "Treats & snacking",       functions: [treat]}
+  - {id: fresh_cooking,      label: "Cooking from fresh",      functions: [fresh_cooking, meal_base, fresh_vegetables, pasta_and_rice, condiments]}
+  - {id: chilled_basics,     label: "Chilled basics",          functions: [chilled_staple, cheese, milk_and_alternatives, yoghurt, butter_and_spreads]}
+  - {id: convenience_meals,  label: "Convenience / frozen meals", functions: [frozen_meal, frozen_meals_and_sides, frozen_vegetables]}
+  - {id: treats,             label: "Treats & snacking",       functions: [treat, biscuits, savoury_snacks, frozen_treats]}
   - {id: refreshment,        label: "Drinks & refreshment",    functions: [refreshment]}
