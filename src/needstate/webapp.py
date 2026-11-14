@@ -1,4 +1,4 @@
-﻿"""Loopback-only web application. Receipts live in memory for the current server session."""
+"""Loopback-only web application. Receipts live in memory for the current server session."""
 import argparse
 import json
 import logging
@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlsplit, parse_qs
 
 import pandas as pd
+
 
 from needstate.workspace import analyse_lines, config, workbook, to_canonical
 
@@ -84,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.local(): return self.send(403, {})
         url = urlsplit(self.path)
-        assets = {"/":("index.html","text/html; charset=utf-8"),"/app.js":("app.js","text/javascript"),"/style.css":("style.css","text/css")}
+        assets = {"/":("index.html","text/html; charset=utf-8"),"/business.js":("business.js","text/javascript"),"/goals.js":("goals.js","text/javascript"),"/app.js":("app.js","text/javascript"),"/style.css":("style.css","text/css")}
         if url.path in assets:
             name,mime = assets[url.path]
             return self.send(200,(ASSETS/name).read_bytes(),mime)
@@ -93,8 +94,10 @@ class Handler(BaseHTTPRequestHandler):
             r = store.report
             if url.path == "/api/state":
                 return self.send(200,dict(store.state, token=store.token, available=r is not None, sample=store.sample))
+            if r and url.path == "/api/spending":
+                return self.send(200,r["spending"])
             if r and url.path == "/api/findings":
-                return self.send(200,dict({k:v for k,v in r.items() if k not in ("receipts","findings")},findings=[
+                return self.send(200,dict({k:v for k,v in r.items() if k not in ("receipts","findings","spending")},findings=[
                     {k:v for k,v in f.items() if k!="customers"} for f in r["findings"]]))
             if r and url.path == "/api/evidence":
                 q = parse_qs(url.query)
@@ -119,6 +122,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError: return self.send(400,{})
         if not 0 <= size <= LIMIT: return self.send(413,{"error":"Choose a workbook smaller than 16 MB."})
         if self.path == "/api/import" and not size: return self.send(400,{"error":"Choose a workbook first."})
+        if self.path == "/api/import" and self.headers.get("X-Data-Scope") != "synthetic":
+            return self.send(400,{"error":"Confirm that this workbook contains synthetic receipts, not real personal data."})
         if not store.start(self.rfile.read(size) if self.path == "/api/import" else None):
             return self.send(409,{"error":"An import is already running."})
         self.send(202,{"phase":"working"})

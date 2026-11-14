@@ -77,7 +77,7 @@ def test_http_workbook_and_demo():
     threading.Thread(target=http.serve_forever,daemon=True).start()
     base=f"http://127.0.0.1:{http.server_port}/"
     def api(path,body=None):
-        req=Request(base+"api/"+path,data=body,headers={"X-Workspace":http.store.token})
+        req=Request(base+"api/"+path,data=body,headers={"X-Workspace":http.store.token,"X-Data-Scope":"synthetic"})
         with urlopen(req,timeout=5) as res:
             return json.load(res)
     def finish():
@@ -89,12 +89,13 @@ def test_http_workbook_and_demo():
             time.sleep(.2)
         pytest.fail("Import exceeded two minutes")
     try:
-        for asset in ("","app.js","style.css"):
+        for asset in ("","app.js","goals.js","style.css"):
             with urlopen(base+asset,timeout=5) as res:
                 assert res.status==200
         api("sample",b"")
         assert finish()["sample"]
         assert api("findings")["total"]==64
+        assert len(api("spending"))==8
         api("import",data)
         assert finish()["phase"]=="ready"
         r=api("findings")

@@ -14,6 +14,8 @@ from needstate.ingestion.adapters import to_canonical
 from needstate.need_state.inference import predict_basket
 from needstate.need_state.observations import replicated_pairs, group_status
 from needstate.pipeline import process_lines
+from needstate.consumer_goals import spending_profiles
+from needstate.business_outlook import business_outlook, category_reach
 
 
 def config():
@@ -214,6 +216,6 @@ def analyse_lines(lines, cfg):
         result.append(dict(kind=kind,label=label,inference=inference,customers=[
             dict(id=k, receipts=v, counts=counts.get(((kind,label),k))) for k,v in by_buyer.items()],
             buyers=sum(k is not None for k in by_buyer), baskets=sum(map(len,by_buyer.values()))))
-    return dict(receipts=receipts, findings=result, replicated_pairs=len(replicated), category_evidence=category_evidence, buyers=len(trips), total=len(receipts), held=held,
+    return dict(category_reach=category_reach(pl.lines, boundary), outlook=business_outlook(pl.lines, boundary, category_evidence), spending=spending_profiles(pl.lines), receipts=receipts, findings=result, replicated_pairs=len(replicated), category_evidence=category_evidence, buyers=len(trips), total=len(receipts), held=held,
                 start=dates.min().date().isoformat(), end=dates.max().date().isoformat(), split=boundary,
                 variants=len(pl.resolution.variant_map), families=len(profiles), review=len(pl.resolution.review_pairs))
