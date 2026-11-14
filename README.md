@@ -50,7 +50,7 @@ Without an editable install, set `$env:PYTHONPATH='src;.'` before these commands
 
 ## Configuration and reuse
 
-`configs/pipeline.yaml` selects the data, mapping, taxonomy, seed and lens. All paths are relative to the project root of that config. `configs/mappings/generic_csv.yaml` demonstrates a second schema. Upload a mapping alongside a new data file to keep the analytics unchanged. Declare synthetic provenance in the sidebar or config.
+`configs/pipeline.yaml` provides the shared default for data, mapping, taxonomy, seed and lens. For machine-specific settings, copy it to `configs/pipeline.local.yaml`; the app prefers that local file when present, and it is excluded from Git. All paths are relative to the project root. `configs/mappings/generic_csv.yaml` demonstrates a second schema. Upload a mapping alongside a new data file to keep the analytics unchanged. Declare synthetic provenance in the sidebar or config.
 
 The workbook taxonomy is a seed, not universal product knowledge. Unknown brands remain null and unknown functions remain unclassified. A brand may span functions/categories, so brand is an attribute rather than a strictly nested node in the statistical testing tree. Category → family is the implemented parent-gated drilldown.
 

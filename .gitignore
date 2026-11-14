@@ -7,6 +7,7 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/
 data/review/
+configs/pipeline.local.yaml
 .streamlit/secrets.toml
 dist/
 *.log

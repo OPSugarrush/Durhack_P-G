@@ -14,7 +14,9 @@ import streamlit as st
 from needstate.config import load_config
 from needstate.product_intel.portfolio import PortfolioLens
 
-CONFIG_PATH = str(ROOT / "configs/pipeline.yaml")
+DEFAULT_CONFIG_PATH = ROOT / "configs/pipeline.yaml"
+LOCAL_CONFIG_PATH = ROOT / "configs/pipeline.local.yaml"
+CONFIG_PATH = str(LOCAL_CONFIG_PATH if LOCAL_CONFIG_PATH.exists() else DEFAULT_CONFIG_PATH)
 
 
 def page(title: str, icon: str = "🧭") -> None:
@@ -92,7 +94,7 @@ def require_analysis():
         st.stop()
     if an is None:
         cfg = load_config(CONFIG_PATH)
-        st.error(f"Input file not found: `{cfg.input_path}`. Copy the workbook into `data/raw/` or edit `configs/pipeline.yaml`.")
+        st.error(f"Input file not found: `{cfg.input_path}`. Copy the workbook into `data/raw/` or update `{Path(CONFIG_PATH).relative_to(ROOT).as_posix()}`.")
         st.stop()
     return an
 
