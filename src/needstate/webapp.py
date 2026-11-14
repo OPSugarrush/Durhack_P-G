@@ -35,6 +35,7 @@ class Store:
         self.lock = threading.Lock()
         self.lines = self.report = None
         self.sample = False
+        self.imports = None
         self.state = {"phase": "empty"}
         self.token = secrets.token_urlsafe(32)
 
@@ -50,16 +51,16 @@ class Store:
         try:
             cfg = config()
             if data is None:
-                if self.lines is not None and not self.sample:
-                    raise ValueError("Your imports are open. Restart the workspace to explore the example separately.")
                 new, skipped, duplicates = demo(cfg), 0, 0
             else:
                 incoming, skipped = workbook(data, cfg.mapping)
-                new, duplicates = combine(None if self.sample else self.lines, incoming)
+                new, duplicates = combine(self.imports[0] if self.imports else None, incoming)
             report = analyse_lines(new, cfg)
             with self.lock:
                 self.report, self.lines, self.sample = report, new, data is None
                 self.state = dict(phase="ready", skipped=skipped, duplicates=duplicates, sample=self.sample)
+                if data is not None:
+                    self.imports = (new, report, self.state.copy())
         except Exception as exc:
             if not isinstance(exc, ValueError):
                 logging.exception("Import failed")
@@ -94,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
         with store.lock:
             r = store.report
             if url.path == "/api/state":
-                return self.send(200,dict(store.state, token=store.token, available=r is not None, sample=store.sample))
+                return self.send(200,dict(store.state, token=store.token, available=r is not None, sample=store.sample, has_imports=store.imports is not None))
             if r and url.path == "/api/findings":
                 return self.send(200,dict({k:v for k,v in r.items() if k not in ("receipts","findings")},findings=[
                     {k:v for k,v in f.items() if k!="customers"} for f in r["findings"]]))
@@ -116,6 +117,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         store = self.server.store
         if not self.local() or self.headers.get("X-Workspace") != store.token: return self.send(403,{})
+        if self.path == "/api/resume":
+            with store.lock:
+                if store.state["phase"] == "working" or not store.imports:
+                    return self.send(409,{"error":"Imports unavailable."})
+                store.lines, store.report, store.state = store.imports
+                store.sample = False
+            return self.send(200,{"phase":"ready"})
         if self.path not in ("/api/import","/api/sample"): return self.send(404,{})
         try: size = int(self.headers.get("Content-Length","0"))
         except ValueError: return self.send(400,{})

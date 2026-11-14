@@ -20,6 +20,14 @@ Use one row per purchased item and the headers in [the receipt mapping](configs/
 
 ## What is implemented
 
+### Reviewing shopping missions
+
+The interactive workspace compares product pairings among each buyer's trips with the same number of distinct product families. A pairing can strengthen the graph if it qualifies in both halves of the date range. Each half requires at least four observed pairings, three expected, positive excess for two buyers, adjusted lift of 1.25, and a corrected one-sided approximate test at 0.05. Sparse data often support only a category-based suggestion. A department match alone cannot join items in the workspace.
+
+For a blind human review, run `python -m needstate.mission_review receipts.xlsx annotations.csv`. This writes a reproducible sample with one row per product. Within each receipt fill in a group identifier and enter the mission labels for that group in **needs**, separated by a vertical bar. Leave needs empty for a group with no clear purpose. Use labels from `configs/need_states.yaml`. Run the same command with `--compare` to see product-pair agreement, exact label agreement and the specific disagreements for rule review.
+
+Workbook columns named **Pack Size**, **Format**, **Ingredients** and **Customer Feedback** appear alongside matching products when supplied. Imports can be extended from the Import page. Opening the example preserves the imported dataset in memory until the server closes.
+
 - XLSX/CSV adapters and YAML field mappings, canonical lines and receipt integrity checks.
 - OCR folding, abbreviation expansion, unique-prefix resolution, fuzzy review suggestions and nullable brand/owner metadata.
 - Product hierarchy and configurable portfolio exposure/adjacency. Empty owners and brands select general-market mode.

@@ -38,6 +38,7 @@ def decompose_basket(
     assoc_weight: float = 0.25,
     ambiguity_ratio: float = 0.8,
     profiles: dict | None = None,
+    replicated: dict | None = None,
 ) -> list[Partition]:
     """assoc: optional pair table with family_a, family_b, adj_lift (consumer-adjusted) to blend in."""
     fams = list(dict.fromkeys(families))
@@ -53,6 +54,10 @@ def decompose_basket(
     for i, a in enumerate(fams):
         for b in fams[i + 1 :]:
             w = (1 - assoc_weight) * functional_similarity(h[a], h[b]) + assoc_weight * lift.get((a, b), 0.0)
+            if replicated is not None:
+                similarity = functional_similarity(h[a], h[b])
+                observed = replicated.get(tuple(sorted((a,b))), 1.0)
+                w = (similarity if similarity >= .6 or observed > 1 else 0) + min(2, observed - 1)
             if w > 0:
                 G.add_edge(a, b, weight=w)
     comms = list(greedy_modularity_communities(G, weight="weight")) if G.number_of_edges() else [{f} for f in fams]

@@ -70,10 +70,11 @@ def predict_basket(
     match_confidence: dict[str, float] | None = None,
     assoc: pd.DataFrame | None = None,
     profiles: dict | None = None,
+    replicated: dict | None = None,
 ) -> BasketPrediction:
     th = needs_cfg.get("thresholds", {})
     hidx = profiles if profiles is not None else hierarchy.set_index("family_id").to_dict("index")
-    parts = decompose_basket(families, hierarchy, assoc=assoc, ambiguity_ratio=th.get("ambiguity_ratio", 0.8), profiles=hidx)
+    parts = decompose_basket(families, hierarchy, assoc=assoc, ambiguity_ratio=th.get("ambiguity_ratio", 0.8), profiles=hidx, replicated=replicated)
     cands: list[dict] = []
     for p in parts:
         cands += score_partition(p, hidx, needs_cfg["need_states"])

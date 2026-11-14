@@ -12,6 +12,7 @@ from openpyxl import load_workbook
 from needstate.config import ROOT, load_config
 from needstate.ingestion.adapters import to_canonical
 from needstate.need_state.inference import predict_basket
+from needstate.need_state.observations import replicated_pairs, group_status
 from needstate.pipeline import process_lines
 
 
@@ -58,6 +59,9 @@ def workbook(data, mapping):
     if fields.get("line_number") in df and df[fields["line_number"]].notna().any() and not explicit:
         raise ValueError("Some line numbers are blank. Fill them in or remove the column.")
     lines = to_canonical(df, mapping)
+    for field in ("Pack Size", "Format", "Ingredients", "Customer Feedback"):
+        if field in df:
+            lines[field] = df[field].reset_index(drop=True).astype("string")
     skipped = 0
     if explicit:
         before = len(lines)
@@ -74,9 +78,9 @@ def combine(old, new):
     common = set(old.transaction_id) & set(new.transaction_id)
     if common:
         def signatures(frame):
-            cols = sorted(set(frame) - {"line_id"})
+            cols = sorted((set(old) | set(new)) - {"line_id"})
             sub = frame[frame.transaction_id.isin(common)]
-            return {tid: sorted(map(tuple, g[cols].astype("string").fillna("").values.tolist()))
+            return {tid: sorted(map(tuple, g.reindex(columns=cols).astype("string").fillna("").values.tolist()))
                     for tid, g in sub.groupby("transaction_id")}
         a, b = signatures(old), signatures(new)
         for tid in sorted(common):
@@ -105,9 +109,17 @@ def analyse_lines(lines, cfg):
     cutoff = cfg.need_states["thresholds"]["abstain_below_score"]
     receipts, findings, trips, history = {}, defaultdict(dict), defaultdict(list), defaultdict(list)
     held = 0
+    replicated, variable = replicated_pairs(pl.lines)
     for tid, g in pl.lines.groupby("transaction_id", sort=False):
         families = list(g.family_id.dropna().unique())
-        pred = predict_basket(tid, families, pl.hierarchy, cfg.need_states, quality[tid], conf, profiles=profiles)
+        prices = dict(zip(g.family_id, g.unit_price))
+        attributes = defaultdict(dict)
+        for field in ("Pack Size", "Format", "Ingredients", "Customer Feedback"):
+            if field in g:
+                for family, value in zip(g.family_id,g[field]):
+                    if pd.notna(value):
+                        attributes[family].setdefault(field, set()).add(str(value))
+        pred = predict_basket(tid, families, pl.hierarchy, cfg.need_states, quality[tid], conf, profiles=profiles, replicated=replicated)
         customer = g.customer_id.dropna()
         buyer = str(customer.iloc[0]) if len(customer) else None
         day = g.timestamp.iloc[0].date().isoformat()
@@ -118,6 +130,10 @@ def analyse_lines(lines, cfg):
             if not pred.abstained:
                 labels.update(c["label"] for c in candidates)
             parts.append(dict(products=[profiles[f]["family_name"] for f in part["product_ids"]],
+                              basis=group_status(part["product_ids"], replicated, variable),
+                              prices=[float(prices[f]) if pd.notna(prices[f]) and np.isfinite(prices[f]) else None for f in part["product_ids"]],
+                              attributes=[{k:sorted(v) for k,v in attributes[f].items()} for f in part["product_ids"]],
+                              categories=[profiles[f]["category"].replace("_"," ").capitalize() for f in part["product_ids"]],
                               ambiguous=[profiles[f]["family_name"] for f in part["ambiguous_product_ids"]],
                               needs=[dict(label=c["label"], score=c["score"], support=[profiles[f]["family_name"] for f in c["supporting_product_ids"]]) for c in candidates]))
         receipts[tid] = dict(id=tid, buyer=buyer, date=day, parts=parts, abstained=pred.abstained,
@@ -170,9 +186,25 @@ def analyse_lines(lines, cfg):
         ev["q"] = round(float(q),5)
     result = []
     for (kind,label), by_buyer in sorted(findings.items(), key=lambda item: -sum(map(len,item[1].values()))):
-        result.append(dict(kind=kind,label=label,customers=[
+        inference = ""
+        matches = [tid for tids in by_buyer.values() for tid in tids]
+        if kind == "Shopping mission":
+            corroborated = sum(any(part["basis"] == "All pairs repeated across both periods"
+                and any(need["label"] == label for need in part["needs"])
+                for part in receipts[tid]["parts"]) for tid in matches)
+            inference = (f"Products suggest {label.lower()} on {len(matches)} trips. "
+                         f"On {corroborated} of these, every pairing in a supporting group repeated above expectation in both periods.")
+        elif kind == "Mixed basket":
+            inference = f"On {len(matches)} trips, the products suggest more than one purpose for the same shop."
+        elif kind in ("More frequent","Less frequent","No recent purchase","Newly observed"):
+            comparisons = np.array([counts[((kind,label),buyer)] for buyer in by_buyer])
+            early = np.mean(comparisons[:,0]/comparisons[:,1])
+            late = np.mean(comparisons[:,2]/comparisons[:,3])
+            inference = (f"For these {len(by_buyer)} buyers, {label.lower()} appeared on an average "
+                         f"of {early:.0%} of earlier trips and {late:.0%} of trips from {boundary}.")
+        result.append(dict(kind=kind,label=label,inference=inference,customers=[
             dict(id=k, receipts=v, counts=counts.get(((kind,label),k))) for k,v in by_buyer.items()],
             buyers=sum(k is not None for k in by_buyer), baskets=sum(map(len,by_buyer.values()))))
-    return dict(receipts=receipts, findings=result, category_evidence=category_evidence, buyers=len(trips), total=len(receipts), held=held,
+    return dict(receipts=receipts, findings=result, replicated_pairs=len(replicated), category_evidence=category_evidence, buyers=len(trips), total=len(receipts), held=held,
                 start=dates.min().date().isoformat(), end=dates.max().date().isoformat(), split=boundary,
                 variants=len(pl.resolution.variant_map), families=len(profiles), review=len(pl.resolution.review_pairs))
