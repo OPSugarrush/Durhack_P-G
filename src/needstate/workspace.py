@@ -192,8 +192,17 @@ def analyse_lines(lines, cfg):
             corroborated = sum(any(part["basis"] == "All pairs repeated across both periods"
                 and any(need["label"] == label for need in part["needs"])
                 for part in receipts[tid]["parts"]) for tid in matches)
-            inference = (f"Products suggest {label.lower()} on {len(matches)} trips. "
-                         f"On {corroborated} of these, every pairing in a supporting group repeated above expectation in both periods.")
+            support = defaultdict(int)
+            for tid in matches:
+                names = {name for part in receipts[tid]["parts"] for need in part["needs"]
+                         if need["label"] == label for name in need["support"]}
+                for name in names:
+                    support[name] += 1
+            product = min(support, key=lambda name: (-support[name], name))
+            inference = (f"Products used for {label.lower()} appeared on {len(matches)} trips. "
+                         f"{product} was the most frequent example, bought on {support[product]} of those trips.")
+            if corroborated:
+                inference += f" On {corroborated} trips, the supporting group also contained pairings that repeated above expectation before and after {boundary}."
         elif kind == "Mixed basket":
             inference = f"On {len(matches)} trips, the products suggest more than one purpose for the same shop."
         elif kind in ("More frequent","Less frequent","No recent purchase","Newly observed"):
