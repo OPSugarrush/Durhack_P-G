@@ -1,26 +1,22 @@
 # NeedState Engine
 
-A local Streamlit app for exploring receipt patterns, product families and observed consumer routines. Based on the supplied Claude build, completed as a reusable hackathon foundation. All interpretation is a research hypothesis; scores are uncalibrated rules, not probabilities of consumer motivation.
+Explore the needs a basket might serve, how often a category appears in a buyer's trips, and the receipts behind each finding. Mission scores are explainable rules, not measured probabilities of shopper intent.
 
 ## Start on Windows
 
-Dependencies and the supplied workbook are already installed in this workspace:
+Double-click **Start NeedState.cmd** or run the following from the checkout:
 
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run app/Home.py
-```
-
-Or double-click `Start NeedState.cmd`. Open the local address printed by Streamlit. The initial consumer-adjusted analysis is cached and can take several minutes.
-
-For a fresh checkout with Python 3.11 or later:
-
-```powershell
+~~~powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m streamlit run app/Home.py
-```
+.\.venv\Scripts\python.exe -m needstate.webapp --open
+~~~
 
-Copy the source workbook into `data/raw/DH_Synthtic_Receipt_Database.xlsx`, or upload an XLSX/CSV in the sidebar. Raw data and review decisions are excluded from version control. The original Downloads workbook is unchanged.
+The workspace runs on your computer at http://127.0.0.1:8765. Choose **Explore example** to use 64 built-in synthetic receipts; no external workbook is needed. Or open **Import** and select an Excel file. The first import replaces the example; subsequent imports extend the same session. Restarting the server clears imported data.
+
+Follow **Start → Import → Findings → Customer evidence**. Filter findings by type, select a buyer, then expand a receipt to inspect the contributing products, mission groups, uncertainty and scores. Use **All findings** to return with your filters intact.
+
+Use one row per purchased item and the headers in [the receipt mapping](configs/mappings/dh_synthetic_receipts.yaml). Keep receipt and buyer IDs as Excel text to preserve leading zeros. Exact numbered lines and repeated receipts are counted once. Conflicting overlaps reject the complete batch. Without line numbers, repeated items within a receipt are preserved. Workbooks are limited to 16 MB.
 
 ## What is implemented
 
@@ -32,7 +28,7 @@ Copy the source workbook into `data/raw/DH_Synthtic_Receipt_Database.xlsx`, or u
 - Observed concentration/repeat routines, graph basket decomposition, independent need scores, supporting products, abstention and remove-product sensitivity.
 - Exploratory discovery and local transactional review decisions; approving a candidate does not silently change the taxonomy.
 - Trend/bundle injections, shuffled-null experiments and missing-data degradation experiments.
-- Eight dashboard pages, CSV exports and an offline evidence narrator. No paid API or model download required.
+- The primary browser workspace, plus the legacy Streamlit research pages, CSV exports and an offline evidence narrator. No paid API or model download required.
 
 ## Commands
 
@@ -50,7 +46,7 @@ Without an editable install, set `$env:PYTHONPATH='src;.'` before these commands
 
 ## Configuration and reuse
 
-`configs/pipeline.yaml` provides the shared default for data, mapping, taxonomy, seed and lens. For machine-specific settings, copy it to `configs/pipeline.local.yaml`; the app prefers that local file when present, and it is excluded from Git. All paths are relative to the project root. `configs/mappings/generic_csv.yaml` demonstrates a second schema. Upload a mapping alongside a new data file to keep the analytics unchanged. Declare synthetic provenance in the sidebar or config.
+`configs/pipeline.yaml` provides the shared default for data, mapping, taxonomy, seed and lens. For machine-specific settings, copy it to `configs/pipeline.local.yaml`; the app prefers that local file when present, and it is excluded from Git. All paths are relative to the project root. `configs/mappings/generic_csv.yaml` demonstrates a second schema. Upload a mapping alongside a new data file to keep the analytics unchanged. These sidebar and custom mapping options belong to the legacy Streamlit app (python -m streamlit run app/Home.py).
 
 The workbook taxonomy is a seed, not universal product knowledge. Unknown brands remain null and unknown functions remain unclassified. A brand may span functions/categories, so brand is an attribute rather than a strictly nested node in the statistical testing tree. Category → family is the implemented parent-gated drilldown.
 

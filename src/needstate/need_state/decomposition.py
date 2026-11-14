@@ -37,12 +37,13 @@ def decompose_basket(
     assoc: pd.DataFrame | None = None,
     assoc_weight: float = 0.25,
     ambiguity_ratio: float = 0.8,
+    profiles: dict | None = None,
 ) -> list[Partition]:
     """assoc: optional pair table with family_a, family_b, adj_lift (consumer-adjusted) to blend in."""
     fams = list(dict.fromkeys(families))
     if not fams:
         return []
-    h = hierarchy.set_index("family_id")
+    h = profiles if profiles is not None else hierarchy.set_index("family_id").to_dict("index")
     lift = {}
     if assoc is not None and len(assoc):
         for a, b, v in zip(assoc["family_a"], assoc["family_b"], assoc["adj_lift"]):
@@ -51,7 +52,7 @@ def decompose_basket(
     G.add_nodes_from(fams)
     for i, a in enumerate(fams):
         for b in fams[i + 1 :]:
-            w = (1 - assoc_weight) * functional_similarity(h.loc[a], h.loc[b]) + assoc_weight * lift.get((a, b), 0.0)
+            w = (1 - assoc_weight) * functional_similarity(h[a], h[b]) + assoc_weight * lift.get((a, b), 0.0)
             if w > 0:
                 G.add_edge(a, b, weight=w)
     comms = list(greedy_modularity_communities(G, weight="weight")) if G.number_of_edges() else [{f} for f in fams]

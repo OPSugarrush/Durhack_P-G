@@ -31,7 +31,7 @@ class BasketPrediction:
 
 def score_partition(part: Partition, hierarchy_idx: pd.DataFrame, needs: list[dict]) -> list[dict]:
     out = []
-    funcs = {f: hierarchy_idx.loc[f, "function"] for f in part.families}
+    funcs = {f: hierarchy_idx[f]["function"] if isinstance(hierarchy_idx, dict) else hierarchy_idx.loc[f, "function"] for f in part.families}
     for n in needs:
         support = [f for f, fn in funcs.items() if fn in n["functions"]]
         if not support:
@@ -69,10 +69,11 @@ def predict_basket(
     data_completeness: float = 1.0,
     match_confidence: dict[str, float] | None = None,
     assoc: pd.DataFrame | None = None,
+    profiles: dict | None = None,
 ) -> BasketPrediction:
     th = needs_cfg.get("thresholds", {})
-    hidx = hierarchy.set_index("family_id")
-    parts = decompose_basket(families, hierarchy, assoc=assoc, ambiguity_ratio=th.get("ambiguity_ratio", 0.8))
+    hidx = profiles if profiles is not None else hierarchy.set_index("family_id").to_dict("index")
+    parts = decompose_basket(families, hierarchy, assoc=assoc, ambiguity_ratio=th.get("ambiguity_ratio", 0.8), profiles=hidx)
     cands: list[dict] = []
     for p in parts:
         cands += score_partition(p, hidx, needs_cfg["need_states"])
