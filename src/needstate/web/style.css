@@ -1,35 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 :root {
-  --ink: #171915;
-  --muted: #555a52;
-  --line: #dfe2da;
-  --soft: #f4f5f2;
-  --lime: #bcf137;
-  --gain: #779c24;
+  --ink: #19212a;
+  --muted: #435161;
+  --line: #dbe0e6;
+  --soft: #f3f5f7;
+  --lime: #1669af;
+  --gain: #1264a3;
   --decline: #393d36;
-  font-family: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
   color: var(--ink);
   background: white;
   font-variant-numeric: tabular-nums;
 }
 * { box-sizing: border-box }
 body { margin: 0 }
-header { height: 72px; display: flex; align-items: center; gap: 24px; padding: 0 3vw; border-bottom: 1px solid var(--line) }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 750; letter-spacing: -1.4px; text-decoration: none }
-.mark { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--ink); color: var(--lime); font-style: italic }
-.division,.eyebrow,.kicker,.asidefoot { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--muted) }
-.division { padding-left: 24px; border-left: 1px solid var(--line) }
-.local { margin-left: auto; background: var(--soft); border-radius: 24px; padding: 7px 12px; font-size: 13px }
-.local::before { content: ""; display: inline-block; width: 8px; height: 8px; background: var(--gain); border-radius: 50%; margin-right: 8px }
 .shell { display: grid; grid-template-columns: 232px minmax(0,1fr); max-width: 1760px; margin: auto }
 aside { background: var(--soft); border-right: 1px solid var(--line); padding: 32px 14px; height: calc(100dvh - 72px); position: sticky; top: 0; overflow: auto; display: flex; flex-direction: column }
-aside .kicker { margin: 0 12px 18px }
 aside nav { display: grid; gap: 5px }
 aside nav a { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 10px 12px; border-radius: 8px; text-decoration: none; color: var(--muted); font-size: 12px }
 aside nav b { font-size: 14px; font-weight: 600 }
-aside nav a:hover { background: #e7eadf }
+aside nav a:hover { background: #dce7f2 }
 aside nav a[aria-current] { background: var(--ink); color: white; box-shadow: inset 4px 0 var(--lime) }
-.asidefoot { margin: auto 12px 0; padding-top: 32px }
-.asidefoot small { font-weight: 400; letter-spacing: normal }
 main { width: 100%; min-width: 0; max-width: 1380px; padding: clamp(24px,4vw,64px); outline: none; overflow-wrap: anywhere }
 h1,h2,h3,p { margin-top: 0 }
 h1,h2,h3 { line-height: 1.12; letter-spacing: -.04em }
@@ -39,22 +32,21 @@ h3 { font-size: 19px }
 p,details,li { line-height: 1.55 }
 .lead { max-width: 72ch; font-size: 18px }
 .lead,.muted,.tiny,small { color: var(--muted) }
-.eyebrow { margin-bottom: 14px }
 a { color: inherit; text-underline-offset: 4px }
 .hero { display: grid; grid-template-columns: 1.5fr 1fr; align-items: center; gap: 28px; padding: clamp(24px,4vw,58px); background: var(--soft); border-radius: 18px }
 .hero p { max-width: 62ch }
-.graphic { width: 100%; max-height: 250px; background-image: radial-gradient(#cdd1c5 1px, transparent 1px); background-size: 16px 16px }
+.graphic { width: 100%; max-height: 250px; background-image: radial-gradient(#cdd6df 1px, transparent 1px); background-size: 16px 16px }
 .graphic g[stroke] { stroke: var(--ink) }
 .graphic g[fill]:not([fill=none]) { fill: var(--ink) }
 .graphic g:last-child { fill: var(--lime); stroke: var(--ink) }
 .actions,.bar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px }
 .bar { margin: 20px 0 }
 .btn,button { display: inline-block; min-height: 44px; padding: 11px 18px; border: 1px solid transparent; border-radius: 8px; background: var(--ink); color: white; line-height: 1.4; font-family: inherit; font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer }
-.btn:hover,button:hover { background: #363a31 }
+.btn:hover,button:hover { background: #303946 }
 .secondary,button.link,.actions .back { background: white; color: var(--ink); border: 1px solid #c8ccc2 }
 .secondary:hover,button.link:hover { background: var(--soft) }
 button:disabled { opacity: .55; cursor: default }
-:where(button,a,summary,select,input):focus-visible { outline: 3px solid #567409; outline-offset: 3px }
+:where(button,a,summary,select,input):focus-visible { outline: 3px solid #1264a3; outline-offset: 3px }
 .section,.brand-context,.goal-secondary { margin-top: 36px }
 .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,230px),1fr)); gap: 16px }
 .card,details.panel,.upload { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 22px }
@@ -69,7 +61,7 @@ details.panel,.receipt,.quiet-details,.comparison { margin: 14px 0 }
 summary { cursor: pointer; font-weight: 600 }
 details[open]>summary { margin-bottom: 12px }
 .receipt { border-left: 3px solid var(--ink) }
-mark { background: #e4f7ab; color: var(--ink); padding: 0 .15em }
+mark { background: #d7ebff; color: var(--ink); padding: 0 .15em }
 .error { border-left: 3px solid #a4382a; padding: 10px }
 #notice:not(:empty) { position: fixed; bottom: 18px; right: 18px; padding: 12px 18px; border-radius: 8px; color: white; background: var(--ink) }
 .back { display: inline-block; margin-bottom: 18px }
@@ -90,7 +82,6 @@ mark { background: #e4f7ab; color: var(--ink); padding: 0 .15em }
 .chart-row:hover,.opportunity:hover { background: var(--soft) }
 .chart-row small,.brand-row { display: block }
 .chart-row svg { width: 100%; max-height: 28px }
-.movement-chart { display: block; width: 100%; max-width: 480px; height: 36px }
 .opportunity small { grid-column: 1/-1 }
 meter { width: 100%; accent-color: var(--gain) }
 @media (max-width:900px) {
@@ -99,8 +90,6 @@ meter { width: 100%; accent-color: var(--gain) }
   .graphic { display: none }
 }
 @media (max-width:660px) {
-  header { height: 58px; padding: 0 16px }
-  .division,.asidefoot,aside .kicker { display: none }
   .shell { display: block }
   aside { position: static; height: auto; padding: 8px; border: 0 }
   aside nav { display: flex; flex-wrap: wrap; gap: 2px }
@@ -110,4 +99,43 @@ meter { width: 100%; accent-color: var(--gain) }
   .chart-row,.opportunity { grid-template-columns: 1fr 1fr; gap: 8px }
   .chart-row svg { grid-column: 1/-1; grid-row: 2 }
   .chart-row>span { text-align: right }
+}
+
+
+/* The sidebar anchors the workspace; each analysis occupies its own reading surface. */
+body { background: var(--soft); }
+.shell { min-height: 100dvh; grid-template-columns: 216px minmax(0,1fr); }
+aside { height: 100dvh; padding: 24px 12px; background: #20262d; color: white; border: 0; }
+aside .brand { margin: 0 12px 30px; color: white; font-size: 23px; }
+aside nav a { border-radius: 5px; color: #f5f7fa; }
+aside nav a:hover { background: #343d47; }
+aside nav a[aria-current] { background: #364350; box-shadow: inset 3px 0 #64aff2; }
+main { padding: clamp(22px,3vw,48px); }
+h1 { font-size: clamp(32px,3.1vw,48px); }
+h2 { font-size: clamp(22px,2vw,29px); }
+.hero,.card,.upload,details.panel,.decision-summary,.comparison,.finding-section,.outlook-grid>section {
+  background: white; border: 1px solid var(--line); border-radius: 7px;
+}
+.hero { padding: clamp(24px,3vw,44px); }
+.graphic g:last-child { fill: var(--gain); }
+.finding-section,.outlook-grid>section { padding: 20px; }
+.outlook-grid { display: grid; gap: 16px; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
+.outlook-grid .brand-context { margin: 0; }
+.outlook-grid .chart-row { grid-template-columns: 1fr auto; gap: 4px 12px; }
+.outlook-grid .chart-row svg { grid-column: 1/-1; grid-row: 2; }
+.outlook-grid .chart-row>span { text-align: right; }
+.btn,button,input,select { border-radius: 5px; }
+#download-brief { background: transparent; color: var(--gain); border: 0; padding: 6px 0; text-decoration: underline; }
+.movement-table { width: 100%; border-collapse: collapse; background: white; font-size: 14px; }
+.movement-table caption { text-align: left; font-weight: 600; padding: 12px 0; }
+.movement-table :is(td,th) { padding: 10px 6px; text-align: right; border-bottom: 1px solid var(--line); }
+.movement-table th:first-child { text-align: left; }
+.movement-table thead { background: var(--soft); }
+main a:not(.btn) { color: var(--gain); }
+@media(max-width:1050px) { .outlook-grid { grid-template-columns: 1fr; } }
+@media(max-width:660px) {
+  aside { height: auto; padding: 10px 12px; }
+  aside .brand { margin: 0 6px 6px; }
+  main { padding: 20px 12px; }
+  .movement-table :is(td,th) { padding: 8px 4px; }
 }

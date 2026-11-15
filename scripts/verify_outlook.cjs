@@ -17,7 +17,7 @@ const {chromium}=require('playwright');
   await page.locator('#brand-category').selectOption({index:1});
   await page.getByRole('link',{name:'Category opportunities',exact:true}).click();
   await page.getByRole('heading',{name:'Leading categories',exact:true}).waitFor();
-  if(await page.locator('#category-outlook .movement-chart').count())throw Error('Brand charts leaked into category overview');
+  if(await page.locator('#category-outlook .movement-table').count())throw Error('Brand charts leaked into category overview');
   await page.getByRole('link',{name:/Shopper profiles/}).click();
   await page.getByRole('heading',{name:'Brand behaviour',exact:true}).waitFor();
   await page.getByRole('link',{name:'View history →',exact:true}).first().click();
