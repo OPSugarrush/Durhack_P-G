@@ -1,6 +1,8 @@
 ﻿# NeedState Engine
 
-Explore the needs a basket might serve, how often a category appears in a buyer's trips, and the receipts behind each finding. Mission scores are explainable rules, not measured probabilities of shopper intent.
+NeedState turns receipt spreadsheets and photos into evidence for business decisions: which categories reach shoppers, where purchasing is changing, which brands deserve attention, and what opportunities merit investigation. Built for the P&G challenge at DurHack, it supports a configurable company portfolio lens.
+
+The primary application is a local browser workspace backed by Python. Company analysts can move from category and brand insights to forecasts and the receipt histories supporting each finding. Basket mission scores remain explainable suggestions, not measured probabilities of shopper intent.
 
 ## Start on Windows
 
@@ -8,17 +10,32 @@ Double-click **Start NeedState.cmd** or run the following from the checkout:
 
 ~~~powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,ocr]"
 .\.venv\Scripts\python.exe -m needstate.webapp --open
 ~~~
 
-The workspace runs on your computer at http://127.0.0.1:8765. Choose **Explore example** to use 64 built-in synthetic receipts; no external workbook is needed. Or open **Import** and select an Excel file. Choose **Add a file** to analyse that workbook on its own. A successful import replaces the current findings. Restarting the server clears imported data.
+Requires Python 3.11 or newer. The workspace runs at [localhost:8765](http://127.0.0.1:8765). After installation, double-click **Start NeedState.cmd** to launch it again. Keep the server running while using the app; press Ctrl+C in its terminal to stop it. Add `--port 8766` to the launch command if the default port is occupied. For spreadsheet-only use, install `".[dev]"` instead; the `ocr` extra enables receipt image processing. No paid API key is required.
 
-Follow **Start → Import → Findings → Customer evidence**. Filter findings by type, select a buyer, then expand a receipt to inspect the contributing products, mission groups, uncertainty and scores. Use **All findings** to return with your filters intact.
+## Using the workspace
+
+1. Load the built-in synthetic example or open **Data** to import a spreadsheet or receipt photo. For photos, generate a customer ID or enter an existing one and review the extracted items.
+2. Choose **Add to my data** to combine the upload with the current collection, or **Focus on this upload** to analyse it separately.
+3. Open **Opportunities**: **Category overview** shows reach and purchasing changes; **Business priorities** highlights investigation candidates; **Forecasts** shows available outlooks and portfolio estimates.
+4. Open **Brands** for the brand overview, business priorities and switching histories. Use **Explore** to inspect supporting shopping patterns and receipt evidence.
+
+A single receipt can support a receipt summary but cannot establish a longitudinal trend. Imported data and reviews are held in server memory and are cleared when the server restarts. This is a local research workspace.
+
+## Import format
 
 Use one row per purchased item and the headers in [the receipt mapping](configs/mappings/dh_synthetic_receipts.yaml). Keep receipt and buyer IDs as Excel text to preserve leading zeros. Exact numbered lines and repeated receipts are counted once. Conflicting overlaps reject the complete batch. Without line numbers, repeated items within a receipt are preserved. Workbooks are limited to 16 MB.
 
 ## What is implemented
+
+### Company opportunities and forecasts
+
+Category and brand views connect observed reach, purchasing movement and repeat histories to business investigation priorities. Portfolio analysis uses configured brand/owner metadata, including P&G where recognised. Unknown brands remain unclassified.
+
+Portfolio forecasts estimate inclusion on the next **observed category trip**, conditional on another trip occurring. They require sufficient history and are compared with a baseline on a held-out period. They do not predict revenue or the return from marketing investment. Experiment economics use analyst-supplied assumptions. See [portfolio decisions](docs/PORTFOLIO_DECISIONS.md) for requirements and limitations.
 
 ### Reviewing shopping missions
 
@@ -53,6 +70,8 @@ python -m pytest -q
 Without an editable install, set `$env:PYTHONPATH='src;.'` before these commands. Full missingness grids are deliberately expensive; select a few conditions in the app first.
 
 ## Configuration and reuse
+
+The main browser UI lives in `src/needstate/web` and is served by `needstate.webapp`. Shared analysis lives in `src/needstate`, OCR extraction in `receipt_ingestion`, and automated checks in `tests`. The Streamlit pages under `app` are a separate legacy research interface.
 
 `configs/pipeline.yaml` provides the shared default for data, mapping, taxonomy, seed and lens. For machine-specific settings, copy it to `configs/pipeline.local.yaml`; the app prefers that local file when present, and it is excluded from Git. All paths are relative to the project root. `configs/mappings/generic_csv.yaml` demonstrates a second schema. Upload a mapping alongside a new data file to keep the analytics unchanged. These sidebar and custom mapping options belong to the legacy Streamlit app (python -m streamlit run app/Home.py).
 

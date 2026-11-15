@@ -1,5 +1,22 @@
 # Demo guide
 
+## Primary browser application
+
+Launch with `python -m needstate.webapp --open` after installing the project as described in the [README](../README.md).
+
+1. Open **Data** and demonstrate reviewing an upload, then adding it to the collection or focusing on it separately. A single receipt demonstrates extraction, not forecasting.
+2. Open **Opportunities → Category overview** for leading categories and purchasing changes. Distinguish popularity from growth.
+3. Open **Business priorities** and inspect a supported investigation candidate. Follow its evidence before proposing a business action.
+4. Open **Forecasts** and explain the available estimate. Portfolio repeat forecasts are conditional on a further observed category trip; sparse history may not support one.
+5. Open **Brands** for the overview, business priorities and switching histories. Observed purchase sequences do not establish permanent switching.
+6. Use **Explore** to connect findings to baskets and products.
+
+State that demonstration receipts are synthetic. Frame opportunities as reasons to investigate or run a controlled test, rather than guaranteed investment returns. See [portfolio methodology](PORTFOLIO_DECISIONS.md).
+
+## Legacy research walkthrough
+
+The following refers to the separate Streamlit research pages and validation tools, rather than the primary browser navigation.
+
 1. Open Overview and show the measured audit and family count. State that the receipts are synthetic.
 2. Use Pattern Engine to distinguish raw nominal p-values from corrected results. Show seasonality as unassessable and the approximate power estimate beside each entity. Do not promise a completely empty organic scan.
 3. Open Consumer Routines. Show personal concentration against pooled concentration, then the observed repeat purchases. This is a consumer-level observation, separate from a basket mission.

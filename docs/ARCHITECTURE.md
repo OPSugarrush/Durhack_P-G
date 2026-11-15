@@ -1,5 +1,9 @@
 # Architecture
 
+The primary entry point is `python -m needstate.webapp --open`. It serves the HTML/CSS/JavaScript workspace in `src/needstate/web`, coordinates import review and analysis, and retains the active collection in process memory. The separate Streamlit pages remain a legacy research interface.
+
+`needstate.uploads` stages spreadsheet and OCR imports for review before append or focus operations. `receipt_ingestion` provides the OCR package. `needstate.workspace` assembles the browser report, including business outlooks and the portfolio decision logic in `needstate.opportunities`. See [portfolio decisions](PORTFOLIO_DECISIONS.md) for forecast eligibility and interpretation.
+
 The current user request governs this build. The original prompt and strategy document are historical design inputs; the latest confounder analysis supersedes their requests for seasonal adjustment and automatic fuzzy merges.
 
 | Layer | Input | Output | Boundary |
