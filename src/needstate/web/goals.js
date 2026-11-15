@@ -1,8 +1,8 @@
 /* Consumer scenarios extend the existing workspace; no extra data pipeline. */
 let selectedShopper='';
-async function goals(version){
+async function goals(version, isExample){
  const people=await api('spending');if(epoch!==version)return;
- view.innerHTML=intro('WORKSPACE / SHOPPER PROFILES','Understanding the individual','Understand recorded category spending and brand consistency for an individual shopper.')+'<p class="muted">Amounts use the source currency. Missing purchases are unknown; these totals are not a complete household budget.</p>';
+ view.innerHTML=intro('Shopper profiles')+'<p class="muted">Amounts use the '+(isExample?'workbook':'source')+'’s currency. Missing purchases are unknown; these totals are not a complete household budget.</p>';
  if(!people.length){view.innerHTML+='<p>Include Consumer ID in the workbook to connect spending to a buyer.</p>';return}
  view.innerHTML+='<div class="bar"><label>Buyer <select id="goal-buyer">'+people.map((p,i)=>'<option value="'+i+'">'+esc(p.id)+'</option>').join('')+'</select></label></div><div id="goal-content"></div>';
  document.querySelector('#goal-buyer').value=Math.max(0,people.findIndex(p=>p.id===selectedShopper)); function draw(){const p=people[Number(document.querySelector('#goal-buyer').value)], last=p.months.at(-1);selectedShopper=p.id;
