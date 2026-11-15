@@ -60,7 +60,22 @@ def decompose_basket(
                 w = (similarity if similarity >= .6 or observed > 1 else 0) + min(2, observed - 1)
             if w > 0:
                 G.add_edge(a, b, weight=w)
-    comms = list(greedy_modularity_communities(G, weight="weight")) if G.number_of_edges() else [{f} for f in fams]
+    if not G.number_of_edges():
+        comms = [{f} for f in fams]
+    else:
+        components = list(nx.connected_components(G))
+        # A disconnected union of constant-weight cliques has exactly these
+        # communities under greedy modularity: every within-clique merge has
+        # positive gain, and every cross-component merge has negative gain.
+        # Keep the original algorithm for all other graphs (including weighted
+        # category/function mixtures and evidence-linked components).
+        uniform_cliques = True
+        for component in components:
+            weights = [weight for _, _, weight in G.edges(component, data='weight')]
+            if len(weights) != len(component)*(len(component)-1)//2 or len(set(weights)) > 1:
+                uniform_cliques = False
+                break
+        comms = components if uniform_cliques else list(greedy_modularity_communities(G, weight="weight"))
     comms = sorted((sorted(c) for c in comms), key=lambda c: (-len(c), c))
     owner = {f: k for k, c in enumerate(comms) for f in c}
     parts = []

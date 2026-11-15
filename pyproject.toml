@@ -11,12 +11,17 @@ dependencies = ["pandas>=2.2,<4", "numpy>=2,<3", "scipy>=1.14,<2", "PyYAML>=6,<7
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
+ocr = ["rapidocr_onnxruntime==1.4.4", "onnxruntime>=1.18,<2", "pydantic>=2.8,<3", "Pillow>=10.4,<14", "pypdfium2>=4.30,<6"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+needstate_receipt_ingestion = "receipt_ingestion/ingestion"
 
 [project.scripts]
 needstate = "needstate.__main__:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+packages = ["needstate", "needstate.ai", "needstate.baskets", "needstate.discovery", "needstate.ingestion", "needstate.missing_data", "needstate.need_state", "needstate.patterns", "needstate.product_intel", "needstate.reliability", "needstate.validation", "needstate.validation_harness", "needstate_receipt_ingestion"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
@@ -24,3 +29,4 @@ testpaths = ["tests"]
 
 [tool.setuptools.package-data]
 needstate = ["web/*.html", "web/*.css", "web/*.js"]
+needstate_receipt_ingestion = ["schema.json"]
