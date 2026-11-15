@@ -1,0 +1,16 @@
+{
+  "store_name": "Example Market",
+  "store_address": "12 Example Street",
+  "date": "2026-11-14",
+  "time": "10:30:00",
+  "currency": "GBP",
+  "total": 5.5,
+  "entries": [
+    {"kind":"product","description":"OAT DRINK 1L","quantity":2,"unit_price":2,"amount":4,"promotion":"Save 0.50 basket coupon","affects_total":true,"uncertainty":null},
+    {"kind":"product","description":"APPLES KG","quantity":0.5,"unit_price":4,"amount":2,"promotion":null,"affects_total":true,"uncertainty":"Quantity unit is kg"},
+    {"kind":"discount","description":"BASKET COUPON","quantity":null,"unit_price":null,"amount":-0.5,"promotion":null,"affects_total":true,"uncertainty":null},
+    {"kind":"tax","description":"VAT INCLUDED","quantity":null,"unit_price":null,"amount":0.2,"promotion":null,"affects_total":false,"uncertainty":null},
+    {"kind":"payment","description":"CARD","quantity":null,"unit_price":null,"amount":5.5,"promotion":null,"affects_total":false,"uncertainty":null}
+  ],
+  "uncertainty": []
+}
