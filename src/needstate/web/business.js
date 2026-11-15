@@ -28,9 +28,9 @@ function brandLink(name){
  return '<p class="related-link"><a class="text-link" href="#brands/'+i+'/'+encodeURIComponent(location.hash.slice(1))+'">Compare brands within '+esc(name.toLowerCase())+' →</a></p>';
 }
 function outlookNavigation(active){
- return '<nav class="outlook-tabs" aria-label="Business analysis"><a href="#outlook" '+(active==='categories'?'aria-current="page"':'')+'>Category opportunities</a><a href="#brands" '+(active==='brands'?'aria-current="page"':'')+'>Brands & companies</a></nav>';
+ return '';
 }
-function brandsPage(parts){
+function legacyBrandsPage(parts){
  const cats=report.outlook||[];
  const origin=decodeURIComponent(parts.slice(2).join('/')||'outlook');
  const back=/^(outlook|evidence\/\d+(\/\d+)?)$/.test(origin)?origin:'outlook';
@@ -38,7 +38,9 @@ function brandsPage(parts){
  if(!cats.length){view.innerHTML+='<p>More comparable purchase history is needed for brand analysis.</p>';return}
  view.innerHTML+='<div class="bar"><label>Category <select id="brand-category">'+cats.map((c,i)=>'<option value="'+i+'">'+esc(c.name)+'</option>').join('')+'</select></label></div><div id="brand-analysis"></div>';
  const select=document.querySelector('#brand-category');select.value=String(Math.max(0,Math.min(cats.length-1,Number(parts[1])||0)));
- function draw(){document.querySelector('#brand-analysis').innerHTML=brandDetail(cats[Number(select.value)].name)}
+ function draw(){const c=cats[Number(select.value)], owners=(c.movements.owner||[]).filter(m=>m.earlier!==null&&m.buyers>=5), pg=owners.find(m=>m.name==='P&G'), delta=pg?pg.recent-pg.earlier:null;
+ const moves=c.histories.filter(h=>h.status==='Possible switch'),external=moves.filter(h=>h.owner_movement==='Different owners').length,internal=moves.filter(h=>h.owner_movement==='Same owner').length;
+ document.querySelector('#brand-analysis').innerHTML='<section class="panel"><h2>'+esc(c.name)+' · company position</h2>'+(c.owner_coverage>=70&&pg?'<p>P&G appears on '+pg.recent.toFixed(1)+' of every 100 category trips, '+Math.abs(delta).toFixed(1)+' '+(delta<0?'fewer':'more')+' than earlier.</p>':'<p>Company attribution is incomplete for this category. Recognised brand comparisons are available below.</p>')+(c.owner_coverage>=70?brandRows(c,'owner',true):'')+'</section><section class="panel"><h2>Where observed choices changed</h2><p>'+external+' possible switches between companies · '+internal+' within the same company.</p>'+(moves.length?'<a href="'+historyLink(c,null)+'">Review switching evidence</a>':'<p>No sustained switching sequence identified.</p>')+'</section>'+brandDetail(c.name);}
  select.onchange=()=>{history.replaceState(null,'','#brands/'+select.value+'/'+encodeURIComponent(back));draw()};draw();
 }
 function brandRows(c,level,all=false){
@@ -82,7 +84,7 @@ function historicalOutlook(reportIsExample){
  function select(name){const c=cats.find(c=>c.name===name),target=document.querySelector('#category-outlook');target.innerHTML='<section class="brand-context"><h2>'+esc(name)+'</h2>'+(c?'<p>'+c.comparable+' comparable buyers'+(c.status==='Insufficient evidence'?' &middot; Limited purchase history':'')+'</p>'+decisionPanel(c)+'<h3>Recorded category trips over time</h3><p class="muted">Monthly shares use the buyers observed that month.</p>'+c.months.map(m=>'<p>'+esc(m.month)+' · '+(m.total?m.trips+' of '+m.total+' trips':'No observed trips')+'</p>').join('')+brandLink(name):'<p>This category has recent buyers, but not enough comparable history for a change analysis.</p>')+'<h3>Follow the evidence</h3>'+report.findings.map((f,i)=>f.label===name?'<p><a class="text-link" href="#evidence/'+i+'">'+esc(f.kind)+' · '+f.buyers+' buyers →</a></p>':'').join('')+'</section>';const download=document.querySelector('#download-brief');if(download)download.onclick=()=>{const url=URL.createObjectURL(new Blob([decisionBrief(c,reportIsExample)],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='category-investigation.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};}
  view.querySelectorAll('[data-name]').forEach(b=>b.onclick=()=>{select(b.dataset.name);document.querySelector('#category-outlook').scrollIntoView({behavior:'smooth',block:'start'})});if(top)select(top.name);
 }
-function outlook(){
+function portfolioOutlook(){
  const items=report.opportunities||[];
  view.innerHTML=intro('Opportunities')+'<div class="bar"><label>Portfolio <select id="portfolio"><option value="pg">P&G</option><option value="all">Whole market context</option></select></label><a href="#brands">Compare brands</a></div><div id="opportunities"></div><div id="opportunity-detail"></div>';
  function draw(){const rows=items.filter(o=>document.querySelector('#portfolio').value==='all'||o.relevant);document.querySelector('#opportunities').innerHTML=rows.map(o=>'<button class="chart-row" data-opportunity="'+o.id+'"><strong>'+esc(o.category)+'</strong><span>'+esc(o.title)+'</span><span>'+o.buyers+' buyers</span></button>').join('')||'<p>No eligible portfolio histories. <a href="#import">Add purchasing history</a></p>';document.querySelector('#opportunity-detail').innerHTML='';view.querySelectorAll('[data-opportunity]').forEach(b=>b.onclick=()=>detail(items.find(o=>o.id===b.dataset.opportunity)));}
@@ -91,4 +93,60 @@ function outlook(){
  view.querySelectorAll('#opportunity-detail input,#test-action').forEach(e=>e.oninput=calculate);document.querySelector('#export-test').onclick=()=>{const url=URL.createObjectURL(new Blob([brief],{type:'text/plain'})),a=document.createElement('a');a.href=url;a.download='experiment-brief.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
  }
  document.querySelector('#portfolio').onchange=draw;draw();
+}
+function categoryDashboard(sample){
+ historicalOutlook(sample);
+ const heading=view.querySelector('h1');if(heading)heading.textContent='Opportunities';
+ const target=document.createElement('section');target.className='panel';
+ target.innerHTML='<h2>Category outlook</h2><p class="muted">Expected category trips per 100 recorded trips next month, if recent purchasing patterns continue.</p>'+(report.outlook||[]).map(c=>{
+ const months=c.months.filter(m=>m.total>0), rates=months.map(m=>100*m.trips/m.total);
+ if(rates.length<3)return '<p><strong>'+esc(c.name)+'</strong> · Historical analysis available below; forecasting needs three observed months.</p>';
+ // Select a trend only when it beats persistence on the last observed month.
+ const fit=a=>{const n=a.length,x=(n-1)/2,y=a.reduce((s,v)=>s+v,0)/n,slope=a.reduce((s,v,i)=>s+(i-x)*(v-y),0)/a.reduce((s,v,i)=>s+(i-x)**2,0);return Math.max(0,Math.min(100,y+slope*(n-x)))};
+ const train=rates.slice(0,-1), actual=rates.at(-1), trend=fit(train), stable=train.at(-1), useTrend=Math.abs(trend-actual)<Math.abs(stable-actual), prediction=useTrend?fit(rates):actual, error=Math.abs((useTrend?trend:stable)-actual);
+ return '<div class="chart-row"><strong>'+esc(c.name)+'</strong><span>'+prediction.toFixed(1)+' / 100 trips</span><span>'+esc(c.status)+'</span></div><details class="quiet-details"><summary>Forecast detail</summary><p>'+(useTrend?'Recent trend':'Latest-month baseline')+' · last-month test error '+error.toFixed(1)+' trips per 100. Based on '+rates.length+' observed months; preliminary projection, seasonality unassessable.</p><p>'+esc(c.action)+'</p></details>';
+ }).join('');
+ view.querySelector('.outlook-grid').after(target);
+ const button=document.createElement('button');button.className='secondary';button.textContent='P&G repeat-purchase analysis';button.onclick=()=>{portfolioOutlook();const empty=view.querySelector('#opportunities');if(empty&&!report.opportunities?.some(o=>o.relevant))empty.innerHTML='<p>P&G brand attribution is unavailable in this analysis. Your category insights remain available.</p><button id="back-categories">Back to category opportunities</button>';const back=view.querySelector('#back-categories');if(back)back.onclick=()=>outlook(sample);};view.appendChild(button);
+}
+function businessInsight(c){
+ const supported=['Prioritise a test','Investigate a decline'].includes(c.status);
+ const movement=Math.abs(c.change).toFixed(1)+' '+(c.change<0?'fewer':'more')+' category trips per 100';
+ const title=supported?(c.change>0?c.name+' is gaining purchase frequency':c.name+' is losing purchase frequency'):(Math.abs(c.change)>=3?c.name+' shows an early '+(c.change>0?'increase':'decline'):c.name+' has no clear change');
+ const meaning=supported?(c.change>0?'Investigate which products are driving repeat demand before testing additional availability.':'Check whether buyers are reducing category purchases or choosing other brands before funding retention.'):'The current evidence does not justify changing investment. Use this as a research question.';
+ return {title,meaning,movement,supported};
+}
+function outlook(sample){
+ if(location.hash==='#outlook/categories'){historicalOutlook(sample);view.querySelector('h1').textContent='Category overview';view.querySelector('h1').insertAdjacentHTML('beforebegin',opportunityTabs('categories'));return;}
+ if(location.hash==='#outlook/forecasts'){categoryDashboard(sample);view.querySelector('.outlook-grid')?.remove();view.querySelector('#category-outlook')?.remove();view.querySelector('h1').textContent='Forecasts';view.querySelector('h1').insertAdjacentHTML('beforebegin',opportunityTabs('forecasts'));return;}
+ const cats=report.outlook||[];
+ const ordered=[...cats].sort((a,b)=>Number(businessInsight(b).supported)-Number(businessInsight(a).supported)||Math.abs(b.change)-Math.abs(a.change));
+ view.innerHTML=intro('Business priorities','Review a change, inspect its drivers, then take a research brief to your team.')+'<div class="bar"><label>Show <select id="priority-filter"><option value="all">All observations</option><option value="supported">Supported changes</option><option value="watch">Research watchlist</option></select></label><button class="secondary" id="all-charts">Category charts & forecasts</button></div><div id="priority-list"></div>';
+ function draw(){const mode=document.querySelector('#priority-filter').value,rows=ordered.filter(c=>mode==='all'||businessInsight(c).supported===(mode==='supported'));document.querySelector('#priority-list').innerHTML=rows.map(c=>{const x=businessInsight(c);return '<article class="panel"><small>'+esc(x.supported?'Supported change':'Research watchlist')+'</small><h2>'+esc(x.title)+'</h2><p>'+esc(x.movement)+' · '+c.comparable+' comparable buyers.</p><p>'+esc(x.meaning)+'</p><button data-priority="'+esc(c.name)+'">Review '+esc(c.name.toLowerCase())+'</button></article>'}).join('')||'<p>No supported changes in this selection. The research watchlist and category charts remain available.</p>';view.querySelectorAll('[data-priority]').forEach(b=>b.onclick=()=>review(cats.find(c=>c.name===b.dataset.priority)));}
+ function review(c){const x=businessInsight(c),ev=report.category_evidence?.[c.name],findings=report.findings.map((f,i)=>({f,i})).filter(({f})=>f.label===c.name);view.innerHTML='<button class="secondary" id="priority-back">← Business priorities</button>'+intro(esc(x.title))+'<p>'+esc(x.meaning)+'</p><section class="panel"><h2>What changed</h2><p>'+esc(x.movement)+' across '+c.comparable+' buyers.</p><h3>Products behind the observation</h3>'+(c.drivers||[]).map(p=>'<p>'+esc(p.name)+' · '+p.trips+' recent trips</p>').join('')+'<details><summary>Statistical evidence</summary><p>'+esc(ranges().join(' versus '))+'</p>'+(ev?'<p>Estimated change range: '+ev.low+' to '+ev.high+' trips per 100. Adjusted test value: '+ev.q+'.</p>':'<p>Insufficient evidence for a supported directional claim.</p>')+'</details></section><section class="panel"><h2>Next decision</h2><p>'+esc(c.action)+'</p><p>Measure repeat category purchases against an unchanged comparison group.</p><button id="priority-export">Download research brief</button></section><details class="panel"><summary>Inspect shopper evidence</summary>'+findings.map(({f,i})=>'<p><a href="#evidence/'+i+'">'+esc(f.kind)+' · '+f.buyers+' buyers</a></p>').join('')+'</details>'+brandLink(c.name);document.querySelector('#priority-back').onclick=()=>outlook(sample);document.querySelector('#priority-export').onclick=()=>{const url=URL.createObjectURL(new Blob([decisionBrief(c,sample)],{type:'text/plain'})),a=document.createElement('a');a.href=url;a.download=c.name+'-research-brief.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};window.scrollTo(0,0);}
+ view.querySelector('h1').insertAdjacentHTML('beforebegin',opportunityTabs('priorities'));document.querySelector('#priority-filter').onchange=draw;document.querySelector('#all-charts').remove();draw();
+}
+function opportunityTabs(active){return '<nav class="outlook-tabs" aria-label="Opportunity views">'+[['categories','Category overview'],['priorities','Business priorities'],['forecasts','Forecasts']].map(([key,label])=>'<a href="#outlook'+(key==='priorities'?'':'/'+key)+'" '+(active===key?'aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav>';}
+
+function brandsPage(parts){
+ const cats=report.outlook||[],index=Math.max(0,Math.min(cats.length-1,Number(parts[1])||0)),tab=['overview','priorities','switching'].includes(parts[2])?parts[2]:'overview';
+ view.innerHTML=intro('Brands & companies');
+ if(!cats.length){view.innerHTML+='<p>No comparable category histories in this selection.</p>';return;}
+ const c=cats[index];
+ view.innerHTML+='<nav class="outlook-tabs" aria-label="Brand views">'+[['overview','Brand overview'],['priorities','Business priorities'],['switching','Switching']].map(([key,label])=>'<a href="#brands/'+index+'/'+key+'" '+(key===tab?'aria-current="page"':'')+'>'+label+'</a>').join('')+'</nav><div class="bar"><label>Category <select id="brand-category">'+cats.map((cat,i)=>'<option value="'+i+'" '+(i===index?'selected':'')+'>'+esc(cat.name)+'</option>').join('')+'</select></label></div><div id="brand-content"></div>';
+ document.querySelector('#brand-category').onchange=e=>location.hash='brands/'+e.target.value+'/'+tab;
+ const target=document.querySelector('#brand-content'),rows=(c.movements.brand||[]).filter(m=>m.earlier!==null&&m.buyers>=5),valid=c.brand_coverage>=70;
+ const notes='<details class="quiet-details"><summary>Comparison details</summary><p>'+esc(ranges().join(' versus '))+'. Equal weight per buyer; at least two category trips in each period. Multiple brands can share a trip. Descriptive movements, not significance-tested growth.</p><p>'+c.brand_coverage+'% brand recognition · '+c.owner_coverage+'% company attribution.</p></details>';
+ if(tab==='overview'){
+  if(!valid||!rows.length){target.innerHTML='<p>Brand recognition is too limited for a reliable ranking in this category.</p>'+notes;return;}
+  const bars=(values,movement)=>values.map(m=>{const delta=m.recent-m.earlier,w=movement?Math.min(145,Math.abs(delta)*1.45):bounded(m.recent)*3;return '<div class="chart-row"><strong>'+esc(m.name)+'</strong><svg viewBox="0 0 300 24" role="img" aria-label="'+esc(m.name)+' '+(movement?delta.toFixed(1)+' change':m.recent.toFixed(1)+' per 100 category trips')+'">'+(movement?'<line x1="150" x2="150" y1="0" y2="24" stroke="var(--muted)"/>':'')+'<rect x="'+(movement?(delta<0?150-w:150):0)+'" y="3" height="18" width="'+w+'" fill="'+(movement?movementColour(delta):'var(--ink)')+'" rx="3"/></svg><span>'+(movement?(delta>0?'+':'')+delta.toFixed(1):m.recent.toFixed(1))+' / 100 trips</span></div>'}).join('');
+  target.innerHTML='<div class="outlook-grid"><section class="panel"><h2>Most purchased brands</h2>'+bars([...rows].sort((a,b)=>b.recent-a.recent),false)+'</section><section class="panel"><h2>Brands gaining or losing frequency</h2>'+bars([...rows].sort((a,b)=>Math.abs(b.recent-b.earlier)-Math.abs(a.recent-a.earlier)),true)+'</section></div>'+notes;
+ }else if(tab==='priorities'){
+  const changes=valid?rows.filter(m=>Math.abs(m.recent-m.earlier)>=2).sort((a,b)=>Math.abs(b.recent-b.earlier)-Math.abs(a.recent-a.earlier)):[];
+  target.innerHTML=changes.map(m=>{const up=m.recent>m.earlier;return '<article class="panel"><small>Research lead · observed movement</small><h2>'+esc(m.name)+(up?' is appearing more often':' is appearing less often')+'</h2><p>'+m.earlier.toFixed(1)+' → '+m.recent.toFixed(1)+' purchases per 100 category trips · '+m.buyers+' comparable buyers.</p><p>'+(up?'Check whether growth comes from repeat buyers or newly observed trial before testing broader availability.':'Review competing brand choices and retailer coverage before considering a retention offer.')+'</p><a href="#brands/'+index+'/switching">Review switching evidence</a></article>'}).join('')||'<p>No brand movements meet the review threshold in this category.</p>';
+  target.innerHTML+=notes;
+ }else{
+  const moves=c.histories.filter(h=>h.status==='Possible switch'),counts=new Map();for(const h of moves){const key=h.previous+' → '+h.current;counts.set(key,(counts.get(key)||0)+1);}
+  target.innerHTML='<section class="panel"><h2>Observed brand-to-brand switches</h2>'+([...counts].sort((a,b)=>b[1]-a[1]).map(([name,n])=>'<p><strong>'+esc(name)+'</strong> · '+n+' buyers</p>').join('')||'<p>No repeated brand-to-brand switching sequences identified.</p>')+'</section><section class="panel"><h2>Company impact</h2><p>'+moves.filter(h=>h.owner_movement==='Different owners').length+' between companies · '+moves.filter(h=>h.owner_movement==='Same owner').length+' within one company · '+moves.filter(h=>h.owner_movement==='Ownership unresolved').length+' ownership unknown.</p>'+(c.owner_coverage>=70?'<details><summary>Company purchase frequency</summary>'+brandRows(c,'owner',true)+'</details>':'')+'</section><a href="'+historyLink(c,null)+'">Inspect shopper histories</a>'+notes;
+ }
 }
