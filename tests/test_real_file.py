@@ -2,18 +2,23 @@
 from pathlib import Path
 import pytest
 
-from needstate.config import ROOT
+from needstate.config import ROOT, load_config
 
-DATA = ROOT / "data/raw/DH_Synthtic_Receipt_Database.xlsx"
+CONFIG = ROOT / "configs/pipeline.yaml"
+DATA = load_config(CONFIG).input_path
+if not DATA.exists() and DATA.with_name(DATA.name.replace("_", " ")).exists():
+    DATA = DATA.with_name(DATA.name.replace("_", " "))
 pytestmark = pytest.mark.skipif(not DATA.exists(), reason="Supplied workbook is not available in this checkout")
 
 
 def test_workbook_ingests_and_resolves():
     if not DATA.exists():
         return
-    from needstate.pipeline import run
+    from needstate.pipeline import process_lines
+    from needstate.ingestion.adapters import load_lines
+    cfg = load_config(CONFIG)
 
-    r = run()
+    r = process_lines(load_lines(DATA, cfg.mapping), cfg)
     a = r.audit
     assert (a["n_lines"], a["n_receipts"], a["n_consumers"]) == (32776, 3005, 300)
     assert a["line_total_mismatches"] == 0 and a["receipt_total_mismatches"] == 0
@@ -25,11 +30,13 @@ def test_workbook_ingests_and_resolves():
 def test_workbook_expected_findings():
     if not DATA.exists():
         return
-    from needstate.pipeline import run
+    from needstate.pipeline import process_lines
+    from needstate.ingestion.adapters import load_lines
+    cfg = load_config(CONFIG)
     from needstate.baskets.construction import build_basket_matrix
     from needstate.patterns.routines import concentration
     from needstate.patterns.trends import trend_scan
-    bm = build_basket_matrix(run().lines)
+    bm = build_basket_matrix(process_lines(load_lines(DATA, cfg.mapping), cfg).lines)
     _, summary = concentration(bm)
     trends = trend_scan(bm)
     assert summary["concentration_ratio"] > 3

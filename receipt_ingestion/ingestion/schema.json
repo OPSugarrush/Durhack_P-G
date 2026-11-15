@@ -1,0 +1,20 @@
+{
+  "sheet": "Synthetic Receipts",
+  "columns": [
+    ["Consumer ID", "consumer_id", "text"],
+    ["Receipt ID", "receipt_id", "text"],
+    ["Image Filename", "filename", "text"],
+    ["Store Name", "store_name", "text"],
+    ["Store Address", "store_address", "text"],
+    ["Date", "date", "date"],
+    ["Product Name", "description", "text"],
+    ["Quantity", "quantity", "number"],
+    ["Unit Price", "unit_price", "number"],
+    ["Promotion", "promotion", "number"],
+    ["Line Total", "amount", "number"],
+    ["Total Spend", "total", "number"],
+    ["Time", "time", "time"],
+    ["Line Number", "line_number", "integer"]
+  ]
+}
+

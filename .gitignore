@@ -10,4 +10,5 @@ data/review/
 configs/pipeline.local.yaml
 .streamlit/secrets.toml
 dist/
+artifacts/
 *.log

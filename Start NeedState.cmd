@@ -8,5 +8,6 @@ if not exist ".venv\Scripts\python.exe" (
   pause
   exit /b 1
 )
-".venv\Scripts\python.exe" -m streamlit run app/Home.py
+set "PYTHONPATH=%CD%\src"
+".venv\Scripts\python.exe" -m needstate.webapp --open
 pause
