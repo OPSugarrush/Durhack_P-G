@@ -184,7 +184,7 @@ nav a {
   gap: 14px;
   padding: 13px var(--space-12);
   text-decoration: none;
-  border-radius: var(--radius-pill);
+  border-radius: 0;
   min-height: var(--touch-target);
 }
 
@@ -258,6 +258,7 @@ p {
   background: var(--surface-aubergine);
   color: var(--on-primary);
   padding: clamp(var(--space-24),3.6vw,55px);
+  border-radius: var(--radius-xl);
   display: grid;
   grid-template-columns: 1.4fr 1fr;
   align-items: center;
@@ -304,7 +305,15 @@ p {
   color: var(--primary);
 }
 
-.secondary {
+.actions .btn, #example, .btn.secondary {
+  border-radius: 0;
+}
+
+.actions .back {
+  margin-bottom: 0;
+}
+
+.btn.secondary, .secondary {
   background: var(--canvas-lavender);
   border-color: transparent;
   color: var(--ink);
@@ -329,6 +338,7 @@ p {
 .card,details.panel,.upload {
   background: var(--canvas);
   border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
   padding: 22px;
 }
 
@@ -370,6 +380,7 @@ p {
   padding: var(--space-28);
   background: var(--canvas-lavender);
   border: 1px dashed var(--ink-mute);
+  border-radius: var(--radius-md);
   font-weight: 650;
 }
 
@@ -452,6 +463,7 @@ details[open]>summary {
   background: var(--primary-deep);
   color: var(--on-primary);
   padding: var(--space-12) 18px;
+  border-radius: 8px;
   box-shadow: var(--shadow-toast);
 }
 
@@ -800,7 +812,7 @@ aside nav a[aria-current]:hover {
   color: var(--on-primary);
 }
 
-.hero .btn:hover, .secondary:hover {
+.hero .btn:hover, .btn.secondary:hover, .secondary:hover {
   background: var(--canvas-cream);
   color: var(--ink);
 }
