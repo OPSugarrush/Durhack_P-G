@@ -40,3 +40,11 @@ def test_multiple_same_owner_brands_count_one_trip():
     extra=data.iloc[[0]].copy();extra['brand']='B'
     result=business_outlook(pd.concat([data,extra]),'2026-02-20',{})[0]
     assert result['movements']['owner'][0]['earlier']==100
+
+
+def test_category_absence_is_zero_not_a_missing_month():
+    data=fixture()
+    data.loc[data.timestamp.dt.month==2,'category']='food'
+    result=next(c for c in business_outlook(data,'2026-02-20',{}) if c['name']=='Laundry')
+    feb=next(m for m in result['months'] if m['month']=='2026-02')
+    assert feb['trips']==0 and feb['total']>0

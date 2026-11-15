@@ -15,6 +15,7 @@ from needstate.need_state.inference import predict_basket
 from needstate.need_state.observations import replicated_pairs, group_status
 from needstate.pipeline import process_lines
 from needstate.consumer_goals import spending_profiles
+from needstate.evidence import supported_change
 from needstate.business_outlook import business_outlook, category_reach
 
 
@@ -103,7 +104,9 @@ def behaviour(a, b, n, m):
     return "Occasional purchase"
 
 
-def analyse_lines(lines, cfg):
+def analyse_lines(lines, cfg, progress=None):
+    progress = progress or (lambda message: None)
+    progress('Resolving products and checking receipt quality')
     pl = process_lines(lines, cfg)
     profiles = pl.hierarchy.set_index("family_id").to_dict("index")
     conf = pl.resolution.catalogue.set_index("family_id").confidence.to_dict()
@@ -111,7 +114,9 @@ def analyse_lines(lines, cfg):
     cutoff = cfg.need_states["thresholds"]["abstain_below_score"]
     receipts, findings, trips, history = {}, defaultdict(dict), defaultdict(list), defaultdict(list)
     held = 0
+    progress('Checking repeated product pairings')
     replicated, variable = replicated_pairs(pl.lines)
+    progress('Interpreting shopping receipts')
     for tid, g in pl.lines.groupby("transaction_id", sort=False):
         families = list(g.family_id.dropna().unique())
         prices = dict(zip(g.family_id, g.unit_price))
@@ -150,6 +155,7 @@ def analyse_lines(lines, cfg):
         if buyer is not None:
             for cat in set(g.category.dropna()) - {"unclassified"}:
                 history[buyer,cat].append((day,tid))
+    progress('Comparing customer histories')
     dates = pd.to_datetime(lines.timestamp).dt.normalize()
     split = dates.min() + pd.Timedelta(days=((dates.max()-dates.min()).days+1)//2)
     boundary = split.date().isoformat()
@@ -182,10 +188,12 @@ def analyse_lines(lines, cfg):
         bootstrap = [rng.choice(delta, size=len(delta)).mean() for _ in range(500)]
         lo,hi = np.quantile(bootstrap,[.025,.975])
         category_evidence[cat.replace("_"," ").capitalize()] = dict(
-            buyers=len(delta), change=round(float(delta.mean()),1),
+            buyers=len(delta), category_buyers=sum(bool(history.get((buyer,cat))) for buyer in eligible),
+            up=pos, down=neg, change=round(float(delta.mean()),1),
             low=round(float(lo),1), high=round(float(hi),1))
     for ev,q in zip(category_evidence.values(),benjamini_hochberg(np.array(pvalues))):
         ev["q"] = round(float(q),5)
+        ev['supported'] = supported_change(ev)
     result = []
     for (kind,label), by_buyer in sorted(findings.items(), key=lambda item: -sum(map(len,item[1].values()))):
         inference = ""
@@ -216,6 +224,7 @@ def analyse_lines(lines, cfg):
         result.append(dict(kind=kind,label=label,inference=inference,customers=[
             dict(id=k, receipts=v, counts=counts.get(((kind,label),k))) for k,v in by_buyer.items()],
             buyers=sum(k is not None for k in by_buyer), baskets=sum(map(len,by_buyer.values()))))
+    progress('Preparing category and brand insights')
     return dict(category_reach=category_reach(pl.lines, boundary), outlook=business_outlook(pl.lines, boundary, category_evidence), spending=spending_profiles(pl.lines), receipts=receipts, findings=result, replicated_pairs=len(replicated), category_evidence=category_evidence, buyers=len(trips), total=len(receipts), held=held,
                 start=dates.min().date().isoformat(), end=dates.max().date().isoformat(), split=boundary,
                 variants=len(pl.resolution.variant_map), families=len(profiles), review=len(pl.resolution.review_pairs))

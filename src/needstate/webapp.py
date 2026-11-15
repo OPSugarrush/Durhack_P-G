@@ -49,13 +49,18 @@ class Store:
 
     def run(self, data):
         try:
+            def progress(message):
+                with self.lock:
+                    self.state = dict(phase='working', stage=message)
+            progress('Reading workbook')
             cfg = config()
             if data is None:
                 new, skipped, duplicates = demo(cfg), 0, 0
             else:
                 new, skipped = workbook(data, cfg.mapping)
                 duplicates = 0
-            report = analyse_lines(new, cfg)
+            report = analyse_lines(new, cfg, progress=progress)
+            report['version'] = secrets.token_hex(8)
             with self.lock:
                 self.report, self.lines, self.sample = report, new, data is None
                 self.state = dict(phase="ready", skipped=skipped, duplicates=duplicates, sample=self.sample)
@@ -93,7 +98,7 @@ class Handler(BaseHTTPRequestHandler):
         with store.lock:
             r = store.report
             if url.path == "/api/state":
-                return self.send(200,dict(store.state, token=store.token, available=r is not None, sample=store.sample))
+                return self.send(200,dict(store.state, token=store.token, available=r is not None, sample=store.sample, version=r.get('version') if r else None))
             if r and url.path == "/api/spending":
                 return self.send(200,r["spending"])
             if r and url.path == "/api/findings":

@@ -1,5 +1,6 @@
 """Descriptive category priorities and conservative observed brand histories."""
 import pandas as pd
+from needstate.evidence import supported_change
 
 
 def category_reach(lines, boundary):
@@ -25,17 +26,19 @@ def business_outlook(lines, boundary, evidence):
             continue
         name = category.replace('_', ' ').capitalize()
         ev = evidence.get(name, {})
-        supported = len(eligible) >= 20 and g.customer_id.nunique() >= 10 and ev.get('q', 1) < .05 and (ev.get('low', 0) > 0 or ev.get('high', 0) < 0)
+        supported = supported_change(ev)
         period_hits = g.drop_duplicates('transaction_id').groupby(['customer_id','recent']).size().unstack(fill_value=0).reindex(index=eligible,columns=[False,True],fill_value=0)
         observed_change = 100*((period_hits[True]/counts.loc[eligible,True])-(period_hits[False]/counts.loc[eligible,False])).mean()
         change = round(float(observed_change),1)
         status = ('Prioritise a test' if change > 0 else 'Investigate a decline') if supported else ('Insufficient evidence' if len(eligible) < 20 or g.customer_id.nunique() < 10 else 'Watch' if abs(change) >= 3 else 'Maintain and understand')
         actions = {'Prioritise a test': 'Investigate the products driving growth, then test availability or a complementary offer with a comparison group.', 'Investigate a decline': 'Check retailer coverage and availability before testing a retention or assortment change.', 'Watch': 'Collect another period of receipts and check whether this movement persists.', 'Maintain and understand': 'Study repeat buyers and basket companions before changing an established offer.', 'Insufficient evidence': 'Build more comparable buyer histories before allocating investment on this signal.'}
         months = []
-        for month, rows in g.groupby(g.timestamp.dt.strftime('%Y-%m')):
+        for month in pd.period_range(trips.timestamp.min(), trips.timestamp.max(), freq='M').astype(str):
+            rows = g[g.timestamp.dt.strftime('%Y-%m').eq(month)]
             denom = trips[trips.customer_id.isin(eligible) & trips.timestamp.dt.strftime('%Y-%m').eq(month)]
             months.append(dict(month=month, trips=int(rows.transaction_id.nunique()), total=int(denom.transaction_id.nunique())))
         movements = {}
+        drivers = g[g.recent].groupby('raw_product_text').transaction_id.nunique().sort_values(ascending=False).head(3) if 'raw_product_text' in g else pd.Series(dtype=int)
         for level in ['brand', 'owner']:
             rows = []
             # Equal customer weights; within-category trips are the denominator.
@@ -75,6 +78,6 @@ def business_outlook(lines, boundary, evidence):
                 owner_movement=('Same owner' if old_owner==new_owner else 'Different owners') if old_owner and new_owner else 'Ownership unresolved',
                 retailer_changed=shops0!=shops1,
                 timeline=[dict(receipt=str(tid),date=r.timestamp.iloc[0].date().isoformat(),brands=sorted(r.brand.dropna().unique().tolist())) for tid,r in rows.sort_values('timestamp').groupby('transaction_id',sort=False)]))
-        categories.append(dict(name=name,change=change,status=status,action=actions[status],buyers=int(g.customer_id.nunique()),comparable=len(eligible),months=months,
+        categories.append(dict(name=name,change=change,status=status,action=actions[status],drivers=[dict(name=str(k),trips=int(v)) for k,v in drivers.items()],buyers=int(g.customer_id.nunique()),comparable=len(eligible),months=months,
             brand_coverage=round(float(g.brand.notna().mean()*100)),owner_coverage=round(float(g.owner.notna().mean()*100)),movements=movements,histories=histories))
     return sorted(categories,key=lambda c:(c['status']!='Prioritise a test',-c['change']))
