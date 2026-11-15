@@ -33,6 +33,17 @@ def _timestamp(df: pd.DataFrame, fields: dict[str, str]) -> pd.Series:
 def to_canonical(df: pd.DataFrame, mapping: dict[str, Any]) -> pd.DataFrame:
     """Map a source frame to the canonical line table using a YAML field mapping."""
     fields: dict[str, str] = mapping["fields"]
+    df = df.copy()
+    receipt = fields.get('transaction_id')
+    if receipt in df:
+        # Recover only unambiguous metadata inside an already identified receipt.
+        for field in ('customer_id', 'retailer_id', 'date', 'timestamp'):
+            column = fields.get(field)
+            if column in df:
+                values = df[column].replace(r'^\s*$', pd.NA, regex=True)
+                grouped = values.groupby(df[receipt])
+                recovered = grouped.transform('first').where(grouped.transform('nunique').eq(1))
+                df[column] = values.fillna(recovered)
     out = pd.DataFrame(index=df.index)
     for canon, src in fields.items():
         if canon in ("date", "time"):
